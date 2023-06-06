@@ -6,11 +6,10 @@ from argparse import (
     RawDescriptionHelpFormatter,
 )
 from enum import StrEnum, auto
+import os
 import re
 import subprocess
-import tempfile
 import textwrap
-import os
 import warnings
 
 from git import Repo
@@ -18,6 +17,13 @@ from packaging import version
 from setuptools_scm import get_version
 import tomlkit
 
+
+EDITOR = os.environ.get("EDITOR", "vim")
+commit_hdr = """
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+"""
 
 dependency_graph = {
     "sa-foo": ["sa-bar", "sa-baz"],
@@ -29,13 +35,6 @@ default_branch = "master"
 
 pkgname_re = re.compile(r"sa-[a-z]+")
 version_re = re.compile(r"[0-9]+(\.[0-9]+){1,}")
-
-EDITOR = os.environ.get("EDITOR", "vim")
-commit_hdr = """
-# Please enter the commit message for your changes. Lines starting
-# with '#' will be ignored, and an empty message aborts the commit.
-#
-"""
 
 
 class Version(StrEnum):
@@ -152,12 +151,13 @@ def check_current_branch(repo_paths: dict[str, str], branches: dict[str, str]):
 
 
 def invoke_editor(repo: Repo, tag: str) -> str:
-    with tempfile.NamedTemporaryFile(mode="w+", suffix="-COMMIT_EDITMSG") as tmp_file:
+    with open(f"{repo.git_dir}/COMMIT_EDITMSG", mode="w+") as tmp_file:
         msg = "\n".join(
             [
                 f"Release {tag}",
                 "",
-                textwrap.dedent(commit_hdr),
+                "",
+                textwrap.dedent(commit_hdr.strip()),
                 textwrap.indent(repo.git.status(), "# ", predicate=lambda _: True),
             ]
         )
@@ -170,9 +170,8 @@ def invoke_editor(repo: Repo, tag: str) -> str:
 
         # Read the contents of the temporary file after the user has edited it
         with open(tmp_file.name, "r") as edited_file:
-            return "\n".join(
-                line for line in edited_file.readlines() if not line.startswith("#")
-            )
+            lines = edited_file.readlines()
+            return "".join(line for line in lines if not line.startswith("#"))
 
 
 def tag_releases(repo_paths: dict[str, str], bump_version: Version = Version.minor):
@@ -193,10 +192,10 @@ def tag_releases(repo_paths: dict[str, str], bump_version: Version = Version.min
         update_pkg_dependecies(pkg, pkgs)
         # FIXME: version will be incorrect when there are no commits on top of
         # the previous release
-        repo.index.add([item.a_path for item in repo.index.diff(None)])
+        # repo.index.add([item.a_path for item in repo.index.diff(None)])
+        repo.index.add(f"{repo.working_dir}/pyproject.toml")
         repo.index.commit(invoke_editor(repo, next_version))
         repo.create_tag(next_version)
-        # repo.remotes.origin.push(next_version)
 
 
 if __name__ == "__main__":
