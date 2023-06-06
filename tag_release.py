@@ -35,6 +35,7 @@ default_branch = "master"
 
 pkgname_re = re.compile(r"sa-[a-z]+")
 version_re = re.compile(r"[0-9]+(\.[0-9]+){1,}")
+empty_re = re.compile(r"\s+")
 
 
 class Version(StrEnum):
@@ -151,6 +152,12 @@ def check_current_branch(repo_paths: dict[str, str], branches: dict[str, str]):
 
 
 def invoke_editor(repo: Repo, tag: str) -> str:
+    """Invoke the user's default editor to edit the commit message.
+
+    Raises:
+        RuntimeError: If the user cancels the commit message.
+
+    """
     with open(f"{repo.git_dir}/COMMIT_EDITMSG", mode="w+") as tmp_file:
         msg = "\n".join(
             [
@@ -167,7 +174,9 @@ def invoke_editor(repo: Repo, tag: str) -> str:
         tmp_file.flush()
 
         # Open the temporary file in the user's default editor
-        subprocess.run([*EDITOR.split(), tmp_file.name])
+        ret = subprocess.run([*EDITOR.split(), tmp_file.name])
+        if ret.returncode != 0:
+            raise RuntimeError("cancelled by user")
 
         # Read the contents of the temporary file after the user has edited it
         with open(tmp_file.name, "r") as edited_file:
@@ -195,8 +204,16 @@ def tag_releases(repo_paths: dict[str, str], bump_version: Version = Version.min
         # the previous release
         # repo.index.add([item.a_path for item in repo.index.diff(None)])
         repo.index.add(f"{repo.working_dir}/pyproject.toml")
-        repo.index.commit(invoke_editor(repo, next_version))
-        repo.create_tag(next_version)
+        try:
+            msg = invoke_editor(repo, next_version)
+            if msg == "" or empty_re.match(msg):
+                raise RuntimeError("empty commit message")
+        except RuntimeError as err:
+            warnings.warn(f"aborting: {err}")
+            continue
+        else:
+            repo.index.commit(msg)
+            repo.create_tag(next_version)
 
 
 if __name__ == "__main__":
