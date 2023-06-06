@@ -44,12 +44,18 @@ environment.  If people like to choose the location of the checked out
 repo for all packages, they may modify the URLs.  This is necessary
 because editable install for dependencies is not yet supported using
 `pyproject.toml`.  Meaning, `sa-foo` (this package) depends on
-`sa-bar`, and I want to have editable install for both.  To cover this
-case, we choose the above methodolody to setup the dev environment.
+`sa-bar`, and if I want to have editable install for both.  To cover
+this case, we choose the above methodolody to setup the dev
+environment.
 
-*Note:* I think we can actually simplify this further by only listing
-our packages in the requirements file, and relying on pyproject.toml
-to deal with external dependencies.  But I'm not confident yet.
+*Note:* We can actually simplify this further by only listing our
+packages in the requirements file, and relying on pyproject.toml to
+deal with external dependencies.  Something like this:
+```
+-e ../scm-dep
+-e ../scm-base
+-e .
+```
 
 ## version options for dev build
 ```python
