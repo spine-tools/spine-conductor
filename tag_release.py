@@ -212,9 +212,13 @@ if __name__ == "__main__":
         default=Version.minor,
         help="Bump the major, minor, or patch version.",
     )
+    parser.add_argument("-o", "--only", nargs="+", help="Only tag these packages.")
     args = parser.parse_args()
 
     config = read_toml(args.config)
     branches = config.get("branches", {pkg: "master" for pkg in dependency_graph})
+    if args.only:
+        config["repos"] = {pkg: config["repos"][pkg] for pkg in args.only}
+        branches = {pkg: branches[pkg] for pkg in args.only}
     check_current_branch(config["repos"], branches)
     tag_releases(config["repos"], args.bump_version)
