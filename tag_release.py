@@ -158,6 +158,7 @@ def invoke_editor(repo: Repo, tag: str) -> str:
                 "",
                 "",
                 textwrap.dedent(commit_hdr.strip()),
+                f"# Repository: {repo.working_dir}",
                 textwrap.indent(repo.git.status(), "# ", predicate=lambda _: True),
             ]
         )
