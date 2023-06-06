@@ -122,3 +122,8 @@ the edit, or provide an empty commit message.
 ## possible bugs
 I think the logic to skip a release commit when there are no new
 commits is buggy.
+
+## where are the packages on Test PyPI?
+- [`sa-foo`](https://test.pypi.org/project/sa-foo/#history)
+- [`sa-bar`](https://test.pypi.org/project/sa-bar/#history)
+- [`sa-baz`](https://test.pypi.org/project/sa-baz/#history)
