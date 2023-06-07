@@ -117,7 +117,7 @@ dependency_graph = {
 }
 ```
 
-## commit experience
+## release commit experience
 The commit interface is almost identical to command line git usage.
 So if you have your `EDITOR` variable setup, it should just work™.  If
 not, it defaults to opening the `COMMIT_EDITMSG` file in `vim`.
@@ -133,3 +133,9 @@ commits is buggy.
 - [`sa-foo`](https://test.pypi.org/project/sa-foo/#history)
 - [`sa-bar`](https://test.pypi.org/project/sa-bar/#history)
 - [`sa-baz`](https://test.pypi.org/project/sa-baz/#history)
+
+## testing the release packages before publishing
+We should also consider running the test suite on the built wheels
+before publishing.  However that might not be straightforward because
+of the mutual dependency.  We can consider moving the test and publish
+workflow to a separae orchestration repo at a later point.
