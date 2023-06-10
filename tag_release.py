@@ -164,6 +164,8 @@ def prompt_add(repo: Repo) -> int:
     print(status_)
     response = Prompt.ask("Select the files to add (comma/space separated list):")
     added = 0
+    if response == "":
+        return added
     for choice in map(int, comma_space_re.split(response)):
         file_path = status[choice][3:].strip()
         repo.index.add(file_path)
@@ -221,11 +223,11 @@ def tag_releases(repo_paths: dict[str, str], bump_version: Version = Version.min
         if tag == next_version:
             continue
 
-        added = prompt_add(repo)
+        prompt_add(repo)
         modified = [i.a_path for i in repo.index.diff(None)]
         if "pyproject.toml" in modified:  # must add pyproject.toml
             repo.index.add("pyproject.toml")
-            added += 1
+        added = len([i for i in repo.index.diff("HEAD")])
 
         if added > 0:
             try:
@@ -237,8 +239,11 @@ def tag_releases(repo_paths: dict[str, str], bump_version: Version = Version.min
                 continue
             else:
                 repo.index.commit(msg)
-        print(f"Creating tag: {next_version}")
-        repo.create_tag(next_version)
+                print(f"Creating tag: {next_version}")
+                repo.create_tag(next_version)
+        else:
+            print(f"Creating tag: {next_version}")
+            repo.create_tag(next_version)
 
 
 if __name__ == "__main__":
