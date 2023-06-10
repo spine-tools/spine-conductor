@@ -27,11 +27,20 @@ commit_hdr = """
 
 dependency_graph = {}  # to be read from config
 default_branch = "master"
-
-version_re = re.compile(r"[0-9]+(\.[0-9]+){1,}")
 pkgname_re: re.Pattern[str]
 empty_re = re.compile(r"\s+")
 
+
+def version_parse_no_except(vers: str) -> version.Version | None:
+    """Parse a version string and return it as a string.
+
+    If the version string cannot be parsed, return an empty string.
+
+    """
+    try:
+        return version.parse(vers)
+    except version.InvalidVersion:
+        return
 
 
 class Version(Enum):
@@ -46,16 +55,6 @@ class RawArgDefaultFormatter(
     """Combine raw help text formatting with default argument display."""
 
     pass
-
-
-def base_version(version: str) -> str:
-    """Return the base version of a version string."""
-    match = version_re.match(version)
-    if match:
-        return version[slice(*match.span())]
-    else:
-        warnings.warn(f"Could not parse version {version}!")
-        return ""
 
 
 def read_toml(path: str) -> dict:
@@ -84,7 +83,7 @@ def is_circular(pkg: str) -> bool:
 def latest_tags(repos: list[Repo]) -> list[str]:
     """Return the latest tag for each repo."""
     tags = [
-        sorted(map(version.parse, filter(version_re.match, map(str, repo.tags))))[-1]
+        sorted(filter(version_parse_no_except, map(str, repo.tags)))[-1]
         for repo in repos
     ]
     return [str(tag) for tag in tags]
@@ -106,7 +105,9 @@ def guess_next_versions(
     else:
         version_scheme = project["tool"]["setuptools_scm"]["version_scheme"]
     versions = [
-        base_version(get_version(root=repo.working_dir, version_scheme=version_scheme))
+        version.parse(
+            get_version(root=repo.working_dir, version_scheme=version_scheme)
+        ).base_version
         for repo in repos
     ]
 
