@@ -157,7 +157,7 @@ def prompt_add(repo: Repo) -> int:
         else f"[green]{line[0]}[/green][red]{line[1]}[/red]{line[2:]} ({idx})"
         for idx, line in enumerate(status)
     )
-    print(f"Repository: {repo.working_dir}")
+    print(f"[bold]Repository: {repo.working_dir}")
     print(status_)
     response = Prompt.ask("Select the files to add (comma/space separated list):")
     added = 0
