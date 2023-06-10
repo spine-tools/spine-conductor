@@ -9,6 +9,7 @@ from enum import Enum
 import os
 import re
 import subprocess
+import sys
 import textwrap
 import warnings
 
@@ -248,7 +249,9 @@ if __name__ == "__main__":
         description="Tag releases for all packages.",
         formatter_class=RawArgDefaultFormatter,
     )
-    parser.add_argument("config", help="TOML config file")
+    parser.add_argument(
+        "-c", "--config", default="pyproject.toml", help="TOML config file"
+    )
     parser.add_argument(
         "-b",
         "--bump-version",
@@ -261,6 +264,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config = read_toml(args.config)
+    if "tool" in config and "conductor" in config["tool"]:
+        config = config["tool"]["conductor"]
+    else:
+        sys.exit(f"No `tool.conductor` section found in {args.config!r}.")
     dependency_graph.update(config["dependency_graph"])
     pkgname_re = re.compile(config["packagename_regex"])
 
