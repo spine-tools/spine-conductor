@@ -108,19 +108,16 @@ def guess_next_versions(
     else:
         version_scheme = project["tool"]["setuptools_scm"]["version_scheme"]
     versions = [
-        version.parse(
-            get_version(root=repo.working_dir, version_scheme=version_scheme)
-        ).base_version
+        version.parse(get_version(root=repo.working_dir, version_scheme=version_scheme))
         for repo in repos
     ]
 
-    def bump_major(version: str):
-        major, *_ = version.split(".")
-        return f"{int(major) + 1}.0.0"
+    def bump_major(version: version.Version) -> str:
+        return f"{version.major + 1}.0.0"
 
     if bump_version == Version.major:
         return [bump_major(ver) for ver in versions]
-    return versions
+    return [version.base_version for version in versions]
 
 
 def update_pkg_dependecies(pkgs: dict[str, tuple[Repo, str, str]]):
