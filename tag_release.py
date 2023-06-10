@@ -14,6 +14,8 @@ import warnings
 
 from git import Repo
 from packaging import version
+from rich import print
+from rich.prompt import Prompt
 from setuptools_scm import get_version
 import tomlkit
 
@@ -29,6 +31,7 @@ dependency_graph = {}  # to be read from config
 default_branch = "master"
 pkgname_re: re.Pattern[str]
 empty_re = re.compile(r"\s+")
+comma_space_re = re.compile(r"[,\s]+")
 
 
 def version_parse_no_except(vers: str) -> version.Version | None:
@@ -148,6 +151,26 @@ def check_current_branch(repo_paths: dict[str, str], branches: dict[str, str]):
             )
 
 
+def prompt_add(repo: Repo) -> int:
+    """Prompt the user to select files to add to the index."""
+    status = repo.git.status("-sb").splitlines()
+    status_ = "\n".join(
+        line
+        if line.startswith("##")
+        else f"[green]{line[0]}[/green][red]{line[1]}[/red]{line[2:]} ({idx})"
+        for idx, line in enumerate(status)
+    )
+    print(f"Repository: {repo.working_dir}")
+    print(status_)
+    response = Prompt.ask("Select the files to add (comma/space separated list):")
+    added = 0
+    for choice in map(int, comma_space_re.split(response)):
+        file_path = status[choice][3:].strip()
+        repo.index.add(file_path)
+        added += 1
+    return added
+
+
 def invoke_editor(repo: Repo, tag: str) -> str:
     """Invoke the user's default editor to edit the commit message.
 
@@ -197,20 +220,25 @@ def tag_releases(repo_paths: dict[str, str], bump_version: Version = Version.min
     for pkg, (repo, tag, next_version) in pkgs.items():
         if tag == next_version:
             continue
-        # FIXME: version will be incorrect when there are no commits on top of
-        # the previous release
-        # repo.index.add([item.a_path for item in repo.index.diff(None)])
-        repo.index.add(f"{repo.working_dir}/pyproject.toml")
-        try:
-            msg = invoke_editor(repo, next_version)
-            if msg == "" or empty_re.match(msg):
-                raise RuntimeError("empty commit message")
-        except RuntimeError as err:
-            warnings.warn(f"aborting: {err}")
-            continue
-        else:
-            repo.index.commit(msg)
-            repo.create_tag(next_version)
+
+        added = prompt_add(repo)
+        modified = [i.a_path for i in repo.index.diff(None)]
+        if "pyproject.toml" in modified:  # must add pyproject.toml
+            repo.index.add("pyproject.toml")
+            added += 1
+
+        if added > 0:
+            try:
+                msg = invoke_editor(repo, next_version)
+                if msg == "" or empty_re.match(msg):
+                    raise RuntimeError("empty commit message")
+            except RuntimeError as err:
+                warnings.warn(f"aborting: {err}")
+                continue
+            else:
+                repo.index.commit(msg)
+        print(f"Creating tag: {next_version}")
+        repo.create_tag(next_version)
 
 
 if __name__ == "__main__":
