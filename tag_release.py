@@ -5,7 +5,7 @@ from argparse import (
     ArgumentDefaultsHelpFormatter,
     RawDescriptionHelpFormatter,
 )
-from enum import StrEnum, auto
+from enum import Enum
 import os
 import re
 import subprocess
@@ -38,10 +38,11 @@ version_re = re.compile(r"[0-9]+(\.[0-9]+){1,}")
 empty_re = re.compile(r"\s+")
 
 
-class Version(StrEnum):
-    major = auto()
-    minor = auto()
-    patch = auto()
+
+class Version(Enum):
+    major = "major"
+    minor = "minor"
+    patch = "patch"
 
 
 class RawArgDefaultFormatter(
