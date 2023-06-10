@@ -120,22 +120,22 @@ def guess_next_versions(
     return versions
 
 
-def update_pkg_dependecies(pkg: str, pkgs: dict[str, tuple[Repo, str, str]]):
+def update_pkg_dependecies(pkgs: dict[str, tuple[Repo, str, str]]):
     """Update the versions of the dependencies for a given package/project"""
-    repo, _, next_version = pkgs[pkg]
-    project = read_toml(f"{repo.working_dir}/pyproject.toml")
-    dependecies: list[str] = []
-    for dep in project["project"].get("dependencies", []):
-        dep_match = pkgname_re.match(dep)
-        if dep_match:
-            pkg = dep_match.group()
-            next_version = pkgs[pkg][-1]
-            dependecies.append(f"{pkg}>={next_version}")
-        else:
-            dependecies.append(dep)
-    if len(dependecies) > 0:
-        project["project"]["dependencies"] = dependecies
-    write_toml(project, f"{repo.working_dir}/pyproject.toml")
+    for pkg, (repo, _, next_version) in pkgs.items():
+        project = read_toml(f"{repo.working_dir}/pyproject.toml")
+        dependecies: list[str] = []
+        for dep in project["project"].get("dependencies", []):
+            dep_match = pkgname_re.match(dep)
+            if dep_match:
+                pkg_ = dep_match.group()
+                next_version = pkgs[pkg_][-1]
+                dependecies.append(f"{pkg_}>={next_version}")
+            else:
+                dependecies.append(dep)
+        if len(dependecies) > 0:
+            project["project"]["dependencies"] = dependecies
+        write_toml(project, f"{repo.working_dir}/pyproject.toml")
 
 
 def check_current_branch(repo_paths: dict[str, str], branches: dict[str, str]):
@@ -193,10 +193,10 @@ def tag_releases(repo_paths: dict[str, str], bump_version: Version = Version.min
         )
     }
 
+    update_pkg_dependecies(pkgs)
     for pkg, (repo, tag, next_version) in pkgs.items():
         if tag == next_version:
             continue
-        update_pkg_dependecies(pkg, pkgs)
         # FIXME: version will be incorrect when there are no commits on top of
         # the previous release
         # repo.index.add([item.a_path for item in repo.index.diff(None)])
