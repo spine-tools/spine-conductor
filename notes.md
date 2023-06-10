@@ -85,6 +85,13 @@ invoke the release script with a config file
 
 A typical `release.toml` looks like this:
 ```toml
+packagename_regex = "sa-[a-z]+"
+
+[dependency_graph]
+sa-foo = ["sa-bar", "sa-baz"]
+sa-bar = ["sa-foo", "sa-baz"]
+sa-baz = []
+
 [repos]
 sa-foo = "."
 sa-bar = "../scm-dep"

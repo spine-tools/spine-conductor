@@ -25,16 +25,11 @@ commit_hdr = """
 #
 """
 
-dependency_graph = {
-    "sa-foo": ["sa-bar", "sa-baz"],
-    "sa-bar": ["sa-foo", "sa-baz"],
-    "sa-baz": [],
-}
-
+dependency_graph = {}  # to be read from config
 default_branch = "master"
 
-pkgname_re = re.compile(r"sa-[a-z]+")
 version_re = re.compile(r"[0-9]+(\.[0-9]+){1,}")
+pkgname_re: re.Pattern[str]
 empty_re = re.compile(r"\s+")
 
 
@@ -235,7 +230,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config = read_toml(args.config)
-    branches = config.get("branches", {pkg: "master" for pkg in dependency_graph})
+    dependency_graph.update(config["dependency_graph"])
+    pkgname_re = re.compile(config["packagename_regex"])
+
+    branches = config.get("branches", {pkg: default_branch for pkg in dependency_graph})
     if args.only:
         config["repos"] = {pkg: config["repos"][pkg] for pkg in args.only}
         branches = {pkg: branches[pkg] for pkg in args.only}
