@@ -1,3 +1,6 @@
+# About `spine-conductor`
+It's a collection of release orchestration scripts, and CI workflows.
+
 # Rationale & Design
 The current release process has manual steps.  Mostly
 - to manage the version information, and
@@ -19,7 +22,7 @@ packages mostly use `setup.cfg` except Spine Engine.  But even in that
 case, the `setup.py` is simple, so migration should be
 straightforward.
 
-# Toy implementation
+# Toy example
 I implement the above scheme in a set of 3 toy repos, where 2 of them
 have circular dependency:
 - [scm](https://github.com/suvayu/scm) hosts the package `sa-foo`
@@ -82,23 +85,25 @@ invoke the release script with a config file
 ```shell
 ./tag_release.py ./path/to/release.toml
 ```
+or configure it in your project's `pyproject.toml`.  Every config option is expected to be under the `tool.conductor` section.
 
-A typical `release.toml` looks like this:
+A typical `release.toml`/`pyproject.toml` looks like this:
 ```toml
+[tool.conductor]
 packagename_regex = "sa-[a-z]+"
 
-[dependency_graph]
+[tool.conductor.dependency_graph]
 sa-foo = ["sa-bar", "sa-baz"]
 sa-bar = ["sa-foo", "sa-baz"]
 sa-baz = []
 
-[repos]
+[tool.conductor.repos]
 sa-foo = "."
 sa-bar = "../scm-dep"
 sa-baz = "../scm-base"
 
 # # default
-# [branches]
+# [tool.conductor.branches]
 # sa-foo = "master"
 # sa-bar = "master"
 # sa-baz = "master"
@@ -114,8 +119,7 @@ You can limit the new releases to a subset of packages by passing a
 list like this: `--only sa-foo sa-baz`
 
 ## how is circular dependency between packages handled?
-It is hardcoded into the release script using the following
-(version agnostic) dictionary:
+It is included in the config under the section `dependency_graph`.  It is equivalent to the following (version agnostic) dictionary:
 ```python
 dependency_graph = {
     "sa-foo": ["sa-bar", "sa-baz"],
@@ -132,11 +136,8 @@ not, it defaults to opening the `COMMIT_EDITMSG` file in `vim`.
 Just like CLI Git, you can cancel a commit in the usual ways: cancel
 the edit, or provide an empty commit message.
 
-## possible bugs
-I think the logic to skip a release commit when there are no new
-commits is buggy.
-
-## where are the packages on Test PyPI?
+## where are the toy packages?
+You can find them on Test PyPI
 - [`sa-foo`](https://test.pypi.org/project/sa-foo/#history)
 - [`sa-bar`](https://test.pypi.org/project/sa-bar/#history)
 - [`sa-baz`](https://test.pypi.org/project/sa-baz/#history)
