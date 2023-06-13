@@ -143,3 +143,8 @@ You can find them on Test PyPI
 ## testing the release packages before publishing
 We should also consider running the test suite on the built wheels
 before publishing.
+
+## how does it look when packages are published from this workflow?
+This is an [example
+run](https://github.com/suvayu/scm/actions/runs/5256852022) for the
+`scm` package.
