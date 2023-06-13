@@ -53,40 +53,12 @@ jobs:
         path: ${{ matrix.pkg }}/dist/*
         retention-days: 7
 
-  test:
+  publish:
     needs: build
     runs-on: ubuntu-latest
     permissions:
       id-token: write
     steps:
-    - name: Checkout 'Spine-Toolbox'
-      uses: actions/checkout@v3
-      with:
-        repository: 'spine-tools/Spine-Toolbox'
-        path: 'Spine-Toolbox'
-        ref: ${{ inputs['Spine-Toolbox'] }}
-    - name: Checkout 'spine-items'
-      uses: actions/checkout@v3
-      with:
-        repository: 'spine-tools/spine-items'
-        path: 'spine-items'
-        ref: ${{ inputs['spine-items'] }}
-    - name: Checkout 'spine-engine'
-      uses: actions/checkout@v3
-      with:
-        repository: 'spine-tools/spine-engine'
-        path: 'spine-engine'
-        ref: ${{ inputs['spine-engine'] }}
-    - name: Checkout 'Spine-Database-API'
-      uses: actions/checkout@v3
-      with:
-        repository: 'spine-tools/Spine-Database-API'
-        path: 'Spine-Database-API'
-        ref: ${{ inputs['Spine-Database-API'] }}
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
     - name: Make dist directory
       run: mkdir -p dist
     - name: Download all wheels
@@ -94,6 +66,34 @@ jobs:
       with:
         path: dist
     # FIXME: disabled because unsure how to run tests
+    # - name: Checkout 'Spine-Toolbox'
+    #   uses: actions/checkout@v3
+    #   with:
+    #     repository: 'spine-tools/Spine-Toolbox'
+    #     path: 'Spine-Toolbox'
+    #     ref: ${{ inputs['Spine-Toolbox'] }}
+    # - name: Checkout 'spine-items'
+    #   uses: actions/checkout@v3
+    #   with:
+    #     repository: 'spine-tools/spine-items'
+    #     path: 'spine-items'
+    #     ref: ${{ inputs['spine-items'] }}
+    # - name: Checkout 'spine-engine'
+    #   uses: actions/checkout@v3
+    #   with:
+    #     repository: 'spine-tools/spine-engine'
+    #     path: 'spine-engine'
+    #     ref: ${{ inputs['spine-engine'] }}
+    # - name: Checkout 'Spine-Database-API'
+    #   uses: actions/checkout@v3
+    #   with:
+    #     repository: 'spine-tools/Spine-Database-API'
+    #     path: 'Spine-Database-API'
+    #     ref: ${{ inputs['Spine-Database-API'] }}
+    # - name: Set up Python
+    #   uses: actions/setup-python@v4
+    #   with:
+    #     python-version: '3.9'
     # - name: Install pytest and built wheels
     #   run: |
     #     python -m pip install --upgrade pip
