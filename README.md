@@ -1,149 +1,104 @@
 # About `spine-conductor`
-It's a collection of release orchestration scripts, and CI workflows.
 
-# Rationale & Design
-The current release process has manual steps.  Mostly
-- to manage the version information, and
-- to ensure the consistency of the dependency requirements with other Spine packages
+It's a collection of release orchestration scripts, and CI workflows
+to simply release of Spine packages.
 
-So I propose the following workflow:
-1. use [`setuptools_scm`](https://github.com/pypa/setuptools_scm/) to
-   manage versions dynamically using git tags
-2. use a release tagging script to generate the next version number,
-   update the dependency requirements, and create the git tag
-3. push the tags to github, and publish the packages to pypi using
-   github actions
+# Usage
 
-For the tagging script to work, the build system of all the projects
-should be similar.  Since it requires automatic updates, I chose
-`pyproject.toml` as the library to r/w toml is quite mature, and both
-`setup.py` and `setup.cfg` are now deprecated.  The current spine
-packages mostly use `setup.cfg` except Spine Engine.  But even in that
-case, the `setup.py` is simple, so migration should be
-straightforward.
+Example session:
+1. create the release tags
+   ```shell
+   $ cd /path/to/repo/Spine-Toolbox
+   $ /path/to/spine-conductor/tag_release.py -b patch
+   Repository: /path/to/repo/Spine-Toolbox
+   ## master...origin/master
+    M pyproject.toml (1)
+   Select the files to add (comma/space separated list): 1
+   Creating tag: 0.7.2
+   Repository: /path/to/repo/Spine-Toolbox/venv/src/spine-items
+   ## master...origin/master
+    M pyproject.toml (1)
+   Select the files to add (comma/space separated list):
+   Creating tag: 0.2.3
+   Repository: /path/to/repo/Spine-Toolbox/venv/src/spine-engine
+   ## master...origin/master
+   Select the files to add (comma/space separated list):
+   Creating tag: 0.3.1
+   Repository: /path/to/repo/Spine-Toolbox/venv/src/spinedb-api
+   ## master...origin/master
+   Select the files to add (comma/space separated list):
+   Creating tag: 0.2.1
+   Package Tags summary 💾 ➡ pkgtags.json:
+   {
+       "Spine-Toolbox": "0.7.2",
+       "spine-items": "0.2.3",
+       "spine-engine": "0.3.1"
+       "Spine-Database-API": "0.2.1",
+   }
+   ```
+2. push the tags to GitHub
+   ```shell
+   $ for repo in . venv/src/spine-items venv/src/spine-engine venv/src/spinedb-api;
+   > do 
+   > pushd $repo; git push origin master --tags;
+   > done
+   ```
+3. trigger the workflow
+   ```shell
+   $ cat pkgtags.json | gh workflow run --repo spine-tools/spine-conductor test-n-publish.yml --json
+   ```
 
-# Toy example
-I implement the above scheme in a set of 3 toy repos, where 2 of them
-have circular dependency:
-- [scm](https://github.com/suvayu/scm) hosts the package `sa-foo`
-- [scm-dep](https://github.com/suvayu/scm-dep) hosts the package `sa-bar`
-- [scm-base](https://github.com/suvayu/scm-base) hosts the package `sa-baz`
-- `sa-foo` and `sa-bar` have a cyclic dependency
+   You can also trigger the workflow from GitHub.  You will have to
+   add the tags manually in that case.
 
-Release is done by running the [`tag_release.py`](./tag_release.py)
-script.  And each repo has its own action to build and publish wheels
-and tarballs to PyPI.  At the moment they are platform independent
-wheels, but when the need arises switching to platform dependent
-wheels should be possible.
+# Configuration
 
-## workflow that the release script automates
-1. update spine dependencies
-2. tag release
-3. repeat for all spine packages
-
-# dev build
-We can use [`requirements.txt`](./requirements.txt) to setup the dev
-environment.  If people like to choose the location of the checked out
-repo for all packages, they may modify the URLs.  This is necessary
-because editable install for dependencies is not yet supported using
-`pyproject.toml`.  Meaning, `sa-foo` (this package) depends on
-`sa-bar`, and if I want to have editable install for both.  To cover
-this case, we choose the above methodolody to setup the dev
-environment.
-
-*Note:* We can actually simplify this further by only listing our
-packages in the requirements file, and relying on pyproject.toml to
-deal with external dependencies.  Something like this:
-```
--e ../scm-dep
--e ../scm-base
--e .
-```
-
-## version options for dev build
-```python
->>> from setuptools_scm import get_version
->>> get_version(version_scheme="python-simplified-semver")
-'0.3.2.dev1+gbfb07af'
->>> get_version(version_scheme="release-branch-semver")
-'0.4.0.dev1+gbfb07af'
->>> get_version(version_scheme="guess-next-dev")
-'0.3.2.dev1+gbfb07af'
->>> get_version(version_scheme="no-guess-dev")
-'0.3.1.post1.dev1+gbfb07af'
->>> get_version(version_scheme="post-release")
-'0.3.1.post1+gbfb07af'
-```
-
-Preference:
-- `release-branch-semver`: forward-looking (I chose this)
-- `post-release`: clear and concise
-
-# Q&A
-## how to make a release?
-invoke the release script with a config file
-```shell
-./tag_release.py ./path/to/release.toml
-```
-or configure it in your project's `pyproject.toml`.  Every config option is expected to be under the `tool.conductor` section.
-
-A typical `release.toml`/`pyproject.toml` looks like this:
+The release tagging script is configured in TOML format as shown below:
 ```toml
 [tool.conductor]
-packagename_regex = "sa-[a-z]+"
+packagename_regex = "spine(db){0,1}_[a-z]+"  # package name on PyPI
 
 [tool.conductor.dependency_graph]
-sa-foo = ["sa-bar", "sa-baz"]
-sa-bar = ["sa-foo", "sa-baz"]
-sa-baz = []
+spinetoolbox = ["spine_items", "spine_engine", "spinedb_api"]
+spine_items  = ["spine_engine", "spinedb_api"]
+spine_engine = ["spinedb_api"]
+spinedb_api  = []
 
 [tool.conductor.repos]
-sa-foo = "."
-sa-bar = "../scm-dep"
-sa-baz = "../scm-base"
+spinetoolbox = "."
+spine_items  = "venv/src/spine-items"
+spine_engine = "venv/src/spine-engine"
+spinedb_api  = "venv/src/spinedb-api" 
 
 # # default
 # [tool.conductor.branches]
-# sa-foo = "master"
-# sa-bar = "master"
-# sa-baz = "master"
+# spinetoolbox = "master"
+# spine_items  = "master"
+# spine_engine = "master"
+# spinedb_api  = "master"
 ```
 
-## how is the next version picked?
-By default, the minor version is bumped, but if you want, you can do a
-patch/major release by passing `-b patch` or `-b major` to the release
-script.
+It can be included in `pyproject.toml`, or kept in a separate config
+file.  In the latter case, it needs to be provided with the
+`-c`/`--config` option when calling the release tagging script.
 
-## how to limit the new release to a subset of packages?
-You can limit the new releases to a subset of packages by passing a
-list like this: `--only sa-foo sa-baz`
+## Publishing to PyPI
 
-## how is circular dependency between packages handled?
-It is included in the config under the section `dependency_graph`.  It is equivalent to the following (version agnostic) dictionary:
-```python
-dependency_graph = {
-    "sa-foo": ["sa-bar", "sa-baz"],
-    "sa-bar": ["sa-foo", "sa-baz"],
-    "sa-baz": [],
-}
+We use the [Trusted
+Publishers](https://docs.pypi.org/trusted-publishers/) feature for
+releasing to PyPI.  First we have to add this repo as the source for
+releases.  Following which, we can trigger the workflow manually or
+using [GitHub CLI](https://cli.github.com/).
+
+The release tagging script writes a file called `pkgtags.json` in the
+current directory.  It lists the repos that were tagged, along with
+the tags.  This can be fed to GitHub CLI to initiate publishing.
+```shell
+$ cat pkgtags.json | gh workflow run --repo spine-tools/spine-conductor test-n-publish.yml --json
 ```
 
-## release commit experience
-The commit interface is almost identical to command line git usage.
-So if you have your `EDITOR` variable setup, it should just work™.  If
-not, it defaults to opening the `COMMIT_EDITMSG` file in `vim`.
+The packages may also be publised by triggering the workflow manually
+from GitHub.  In that case, the release tags for the different Spine
+repos have to be entered manually.
 
-Just like CLI Git, you can cancel a commit in the usual ways: cancel
-the edit, or provide an empty commit message.
-
-## where are the toy packages?
-You can find them on Test PyPI
-- [`sa-foo`](https://test.pypi.org/project/sa-foo/#history)
-- [`sa-bar`](https://test.pypi.org/project/sa-bar/#history)
-- [`sa-baz`](https://test.pypi.org/project/sa-baz/#history)
-
-## testing the release packages before publishing
-We should also consider running the test suite on the built wheels
-before publishing.  However that might not be straightforward because
-of the mutual dependency.  We can consider moving the test and publish
-workflow to a separae orchestration repo at a later point.
+![Screenshot of the GH UI to do manual dispatch](./gh-workflow-dispatch.png "Manual dispatch menu on GH Actions")
