@@ -56,7 +56,7 @@ Example session:
 The release tagging script is configured in TOML format as shown below:
 ```toml
 [tool.conductor]
-packagename_regex = "spine(db){0,1}_[a-z]+"  # package name on PyPI
+packagename_regex = "spine(toolbox|(db){0,1}_[a-z]+)"  # package name on PyPI
 
 [tool.conductor.dependency_graph]
 spinetoolbox = ["spine_items", "spine_engine", "spinedb_api"]
