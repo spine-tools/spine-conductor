@@ -1,0 +1,132 @@
+name: Publish specified tags of Spine packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      Spine-Toolbox:
+        description: Git tag to use for 'Spine-Toolbox'
+        required: true
+        type: string
+      spine-items:
+        description: Git tag to use for 'spine-items'
+        required: true
+        type: string
+      spine-engine:
+        description: Git tag to use for 'spine-engine'
+        required: true
+        type: string
+      Spine-Database-API:
+        description: Git tag to use for 'Spine-Database-API'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        pkg: ['Spine-Toolbox', 'spine-items', 'spine-engine', 'Spine-Database-API']
+
+    steps:
+    - name: Checkout ${{ matrix.pkg }}
+      uses: actions/checkout@v3
+      with:
+        repository: 'spine-tools/${{ matrix.pkg }}'
+        path: ${{ matrix.pkg }}
+        ref: ${{ inputs[matrix.pkg] }}
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build
+    - name: Build
+      run: |
+        python -m build ${{ matrix.pkg }}
+    - name: Save ${{ matrix.pkg }} wheel
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.pkg }}
+        path: ${{ matrix.pkg }}/dist/*
+        retention-days: 7
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+    - name: Checkout 'Spine-Toolbox'
+      uses: actions/checkout@v3
+      with:
+        repository: 'spine-tools/Spine-Toolbox'
+        path: 'Spine-Toolbox'
+        ref: ${{ inputs['Spine-Toolbox'] }}
+    - name: Checkout 'spine-items'
+      uses: actions/checkout@v3
+      with:
+        repository: 'spine-tools/spine-items'
+        path: 'spine-items'
+        ref: ${{ inputs['spine-items'] }}
+    - name: Checkout 'spine-engine'
+      uses: actions/checkout@v3
+      with:
+        repository: 'spine-tools/spine-engine'
+        path: 'spine-engine'
+        ref: ${{ inputs['spine-engine'] }}
+    - name: Checkout 'Spine-Database-API'
+      uses: actions/checkout@v3
+      with:
+        repository: 'spine-tools/Spine-Database-API'
+        path: 'Spine-Database-API'
+        ref: ${{ inputs['Spine-Database-API'] }}
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - name: Make dist directory
+      run: mkdir -p dist
+    - name: Download all wheels
+      uses: actions/download-artifact@v3
+      with:
+        path: dist
+    # FIXME: disabled because unsure how to run tests
+    # - name: Install pytest and built wheels
+    #   run: |
+    #     python -m pip install --upgrade pip
+    #     pip install pytest
+    #     pip install dist/*/*.whl
+    # - name: Test 
+    #   run: |
+    #     python -m pytest
+    - name: Publish to PyPI using trusted publishing
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        # repository-url: https://test.pypi.org/legacy/
+        packages-dir: dist/Spine-Toolbox
+        # skip-existing: true
+        # verify-metadata: false
+    - name: Publish to PyPI using trusted publishing
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        # repository-url: https://test.pypi.org/legacy/
+        packages-dir: dist/spine-items
+        # skip-existing: true
+        # verify-metadata: false
+    - name: Publish to PyPI using trusted publishing
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        # repository-url: https://test.pypi.org/legacy/
+        packages-dir: dist/spine-engine
+        # skip-existing: true
+        # verify-metadata: false
+    - name: Publish to PyPI using trusted publishing
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        # repository-url: https://test.pypi.org/legacy/
+        packages-dir: dist/Spine-Database-API
+        # skip-existing: true
+        # verify-metadata: false
