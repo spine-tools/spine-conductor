@@ -1,7 +1,7 @@
 # About `spine-conductor`
 
-It's a collection of release orchestration scripts, and CI workflows
-to simply release of Spine packages.
+It is a collection of release orchestration scripts, and CI workflows
+to simplify release of Spine packages.
 
 # Usage
 
