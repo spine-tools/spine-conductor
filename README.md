@@ -60,7 +60,7 @@ packagename_regex = "spine(toolbox|(db){0,1}_[a-z]+)"  # package name on PyPI
 
 [tool.conductor.dependency_graph]
 spinetoolbox = ["spine_items", "spine_engine", "spinedb_api"]
-spine_items  = ["spine_engine", "spinedb_api"]
+spine_items  = ["spinetoolbox", "spine_engine", "spinedb_api"]
 spine_engine = ["spinedb_api"]
 spinedb_api  = []
 
