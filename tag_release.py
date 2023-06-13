@@ -6,7 +6,9 @@ from argparse import (
     RawDescriptionHelpFormatter,
 )
 from enum import Enum
+import json
 import os
+from pathlib import Path
 import re
 import subprocess
 import sys
@@ -15,7 +17,7 @@ import warnings
 
 from git import Repo
 from packaging import version
-from rich import print
+from rich.console import Console
 from rich.prompt import Prompt
 from setuptools_scm import get_version
 import tomlkit
@@ -33,6 +35,8 @@ default_branch = "master"
 pkgname_re: re.Pattern[str]
 empty_re = re.compile(r"\s+")
 comma_space_re = re.compile(r"[,\s]+")
+
+console = Console()
 
 
 def version_parse_no_except(vers: str) -> version.Version | None:
@@ -69,6 +73,10 @@ def read_toml(path: str) -> dict:
 def write_toml(data: dict, path: str):
     with open(path, mode="w") as toml_file:
         tomlkit.dump(data, toml_file)
+
+
+def remote_name(repo: Repo) -> str:
+    return Path(repo.remote().url).stem
 
 
 def is_circular(pkg: str) -> bool:
@@ -121,7 +129,7 @@ def guess_next_versions(
     return [version.base_version for version in versions]
 
 
-def update_pkg_dependecies(pkgs: dict[str, tuple[Repo, str, str]]):
+def update_pkg_deps(pkgs: dict[str, tuple[Repo, str, str]]):
     """Update the versions of the dependencies for a given package/project"""
     for pkg, (repo, _, next_version) in pkgs.items():
         project = read_toml(f"{repo.working_dir}/pyproject.toml")
@@ -158,9 +166,9 @@ def prompt_add(repo: Repo) -> int:
         else f"[green]{line[0]}[/green][red]{line[1]}[/red]{line[2:]} ({idx})"
         for idx, line in enumerate(status)
     )
-    print(f"[bold]Repository: {repo.working_dir}")
-    print(status_)
-    response = Prompt.ask("Select the files to add (comma/space separated list):")
+    console.print(f"[bold]Repository: {repo.working_dir}")
+    console.print(status_)
+    response = Prompt.ask("Select the files to add (comma/space separated list)")
     added = 0
     if response == "":
         return added
@@ -204,7 +212,9 @@ def invoke_editor(repo: Repo, tag: str) -> str:
             return "".join(line for line in lines if not line.startswith("#"))
 
 
-def tag_releases(repo_paths: dict[str, str], bump_version: Version = Version.minor):
+def tag_releases(
+    repo_paths: dict[str, str], bump_version: Version = Version.minor
+) -> dict[str, str]:
     """Tag releases for all packages."""
     _repos = [Repo(path) for path in repo_paths.values()]
     _tags = latest_tags(_repos)
@@ -216,7 +226,8 @@ def tag_releases(repo_paths: dict[str, str], bump_version: Version = Version.min
         )
     }
 
-    update_pkg_dependecies(pkgs)
+    update_pkg_deps(pkgs)
+    summary = {}
     for pkg, (repo, tag, next_version) in pkgs.items():
         if tag == next_version:
             continue
@@ -232,16 +243,15 @@ def tag_releases(repo_paths: dict[str, str], bump_version: Version = Version.min
                 msg = invoke_editor(repo, next_version)
                 if msg == "" or empty_re.match(msg):
                     raise RuntimeError("empty commit message")
-            except RuntimeError as err:
-                warnings.warn(f"aborting: {err}")
-                continue
-            else:
                 repo.index.commit(msg)
-                print(f"Creating tag: {next_version}")
-                repo.create_tag(next_version)
-        else:
-            print(f"Creating tag: {next_version}")
-            repo.create_tag(next_version)
+            except RuntimeError as err:
+                warnings.warn(f"aborting commit: {err}")
+                continue
+
+        console.print(f"Creating tag: {next_version}")
+        repo.create_tag(next_version)
+        summary[remote_name(repo)] = next_version
+    return summary
 
 
 if __name__ == "__main__":
@@ -260,7 +270,8 @@ if __name__ == "__main__":
         default=Version.minor,
         help="Bump the major, minor, or patch version.",
     )
-    parser.add_argument("-o", "--only", nargs="+", help="Only tag these packages.")
+    parser.add_argument("--output", default="pkgtags.json", help="Package tags as JSON")
+    parser.add_argument("--only", nargs="+", help="Only tag these packages.")
     args = parser.parse_args()
 
     config = read_toml(args.config)
@@ -275,5 +286,15 @@ if __name__ == "__main__":
     if args.only:
         config["repos"] = {pkg: config["repos"][pkg] for pkg in args.only}
         branches = {pkg: branches[pkg] for pkg in args.only}
-    check_current_branch(config["repos"], branches)
-    tag_releases(config["repos"], args.bump_version)
+    try:
+        check_current_branch(config["repos"], branches)
+    except Exception:
+        console.print_exception()
+
+    summary = tag_releases(config["repos"], args.bump_version)
+    json_str = json.dumps(summary, indent=4)
+    Path(args.output).write_text(json_str)
+    msg = "\n[underline]Package Tags summary[/underline] "
+    msg = f"{msg} :floppy_disk: :right_arrow: {args.output!r}:"
+    console.print(msg)
+    console.print_json(json_str)
