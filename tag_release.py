@@ -51,7 +51,7 @@ def version_parse_no_except(vers: str) -> version.Version | None:
         return
 
 
-class Version(Enum):
+class VersionPart(Enum):
     major = "major"
     minor = "minor"
     patch = "patch"
@@ -101,8 +101,18 @@ def latest_tags(repos: list[Repo]) -> list[str]:
     return [str(tag) for tag in tags]
 
 
+def bump_version(version: version.Version, part: VersionPart) -> str:
+    """Bump the version by the specified part."""
+    if part == VersionPart.major:
+        return f"{version.major + 1}.0.0"
+    elif part == VersionPart.minor:
+        return f"{version.major}.{version.minor + 1}.0"
+    else:
+        return f"{version.major}.{version.minor}.{version.micro + 1}"
+
+
 def guess_next_versions(
-    repos: list[Repo], bump_version: Version = Version.minor
+    repos: list[Repo], bump_version_part: VersionPart = VersionPart.minor
 ) -> list[str]:
     """Guess the next version for each repo.
 
@@ -112,7 +122,7 @@ def guess_next_versions(
 
     """
     project = read_toml(f"{repos[0].working_dir}/pyproject.toml")
-    if bump_version == Version.patch:
+    if bump_version_part == VersionPart.patch:
         version_scheme = "guess-next-dev"
     else:
         version_scheme = project["tool"]["setuptools_scm"]["version_scheme"]
@@ -121,11 +131,8 @@ def guess_next_versions(
         for repo in repos
     ]
 
-    def bump_major(version: version.Version) -> str:
-        return f"{version.major + 1}.0.0"
-
-    if bump_version == Version.major:
-        return [bump_major(ver) for ver in versions]
+    if bump_version_part == VersionPart.major:
+        return [bump_version(ver, VersionPart.major) for ver in versions]
     return [version.base_version for version in versions]
 
 
@@ -213,7 +220,7 @@ def invoke_editor(repo: Repo, tag: str) -> str:
 
 
 def tag_releases(
-    repo_paths: dict[str, str], bump_version: Version = Version.minor
+    repo_paths: dict[str, str], bump_version: VersionPart = VersionPart.minor
 ) -> dict[str, str]:
     """Tag releases for all packages."""
     _repos = [Repo(path) for path in repo_paths.values()]
@@ -265,9 +272,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "-b",
         "--bump-version",
-        type=Version,
-        choices=Version,
-        default=Version.minor,
+        type=VersionPart,
+        choices=VersionPart,
+        default=VersionPart.minor,
         help="Bump the major, minor, or patch version.",
     )
     parser.add_argument("--output", default="pkgtags.json", help="Package tags as JSON")
