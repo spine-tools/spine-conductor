@@ -42,7 +42,7 @@ console = Console()
 def version_parse_no_except(vers: str) -> version.Version | None:
     """Parse a version string and return it as a string.
 
-    If the version string cannot be parsed, return an empty string.
+    If the version string cannot be parsed, return `None`.
 
     """
     try:
