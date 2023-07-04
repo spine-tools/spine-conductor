@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 
-from argparse import (
-    ArgumentParser,
-    ArgumentDefaultsHelpFormatter,
-    RawDescriptionHelpFormatter,
-)
 from enum import Enum
 import json
 import os
@@ -20,8 +15,8 @@ from packaging import version
 from rich.console import Console
 from rich.prompt import Prompt
 from setuptools_scm import get_version
-import tomlkit
 
+from .config import read_toml, write_toml
 
 EDITOR = os.environ.get("EDITOR", "vim")
 commit_hdr = """
@@ -55,24 +50,6 @@ class VersionPart(Enum):
     major = "major"
     minor = "minor"
     patch = "patch"
-
-
-class RawArgDefaultFormatter(
-    ArgumentDefaultsHelpFormatter, RawDescriptionHelpFormatter
-):
-    """Combine raw help text formatting with default argument display."""
-
-    pass
-
-
-def read_toml(path: str) -> dict:
-    with open(path, mode="r") as toml_file:
-        return tomlkit.load(toml_file)
-
-
-def write_toml(data: dict, path: str):
-    with open(path, mode="w") as toml_file:
-        tomlkit.dump(data, toml_file)
 
 
 def remote_name(repo: Repo) -> str:
@@ -139,7 +116,8 @@ def guess_next_versions(
 def update_pkg_deps(pkgs: dict[str, tuple[Repo, str, str]]):
     """Update the versions of the dependencies for a given package/project"""
     for pkg, (repo, _, next_version) in pkgs.items():
-        project = read_toml(f"{repo.working_dir}/pyproject.toml")
+        pyproject_toml = f"{repo.working_dir}/pyproject.toml"
+        project = read_toml(pyproject_toml)
         dependecies: list[str] = []
         for dep in project["project"].get("dependencies", []):
             dep_match = pkgname_re.match(dep)
@@ -151,7 +129,7 @@ def update_pkg_deps(pkgs: dict[str, tuple[Repo, str, str]]):
                 dependecies.append(dep)
         if len(dependecies) > 0:
             project["project"]["dependencies"] = dependecies
-        write_toml(project, f"{repo.working_dir}/pyproject.toml")
+        write_toml(project, pyproject_toml)
 
 
 def check_current_branch(repo_paths: dict[str, str], branches: dict[str, str]):
@@ -219,7 +197,7 @@ def invoke_editor(repo: Repo, tag: str) -> str:
             return "".join(line for line in lines if not line.startswith("#"))
 
 
-def tag_releases(
+def create_tags(
     repo_paths: dict[str, str], bump_version: VersionPart = VersionPart.minor
 ) -> dict[str, str]:
     """Tag releases for all packages."""
@@ -261,47 +239,27 @@ def tag_releases(
     return summary
 
 
-if __name__ == "__main__":
-    parser = ArgumentParser(
-        description="Tag releases for all packages.",
-        formatter_class=RawArgDefaultFormatter,
-    )
-    parser.add_argument(
-        "-c", "--config", default="pyproject.toml", help="TOML config file"
-    )
-    parser.add_argument(
-        "-b",
-        "--bump-version",
-        type=VersionPart,
-        choices=VersionPart,
-        default=VersionPart.minor,
-        help="Bump the major, minor, or patch version.",
-    )
-    parser.add_argument("--output", default="pkgtags.json", help="Package tags as JSON")
-    parser.add_argument("--only", nargs="+", help="Only tag these packages.")
-    args = parser.parse_args()
-
-    config = read_toml(args.config)
-    if "tool" in config and "conductor" in config["tool"]:
-        config = config["tool"]["conductor"]
-    else:
-        sys.exit(f"No `tool.conductor` section found in {args.config!r}.")
+def make_release(
+    config: dict, bump_version: VersionPart, output: Path, only: list[str] = []
+):
+    """Make release tag for all packages, and print a summary."""
+    global dependency_graph, pkgname_re
     dependency_graph.update(config["dependency_graph"])
     pkgname_re = re.compile(config["packagename_regex"])
 
     branches = config.get("branches", {pkg: default_branch for pkg in dependency_graph})
-    if args.only:
-        config["repos"] = {pkg: config["repos"][pkg] for pkg in args.only}
-        branches = {pkg: branches[pkg] for pkg in args.only}
+    if len(only) > 0:
+        config["repos"] = {pkg: config["repos"][pkg] for pkg in only}
+        branches = {pkg: branches[pkg] for pkg in only}
     try:
         check_current_branch(config["repos"], branches)
     except Exception:
         console.print_exception()
 
-    summary = tag_releases(config["repos"], args.bump_version)
+    summary = create_tags(config["repos"], bump_version)
     json_str = json.dumps(summary, indent=4)
-    Path(args.output).write_text(json_str)
+    output.write_text(json_str)
     msg = "\n[underline]Package Tags summary[/underline] "
-    msg = f"{msg} :floppy_disk: :right_arrow: {args.output!r}:"
+    msg = f"{msg} :floppy_disk: :right_arrow: '{output}':"
     console.print(msg)
     console.print_json(json_str)
