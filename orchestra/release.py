@@ -18,7 +18,9 @@ from setuptools_scm import get_version
 
 from .config import read_toml, write_toml
 
-EDITOR = os.environ.get("EDITOR", "vim")
+EDITOR = os.environ.get(
+    "EDITOR", "notepad" if sys.platform in ("win32", "cygwin") else "vim"
+)
 commit_hdr = """
 # Please enter the commit message for your changes. Lines starting
 # with '#' will be ignored, and an empty message aborts the commit.
