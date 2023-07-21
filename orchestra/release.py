@@ -260,3 +260,20 @@ def make_release(
     msg = f"{msg} :floppy_disk: :right_arrow: '{output}':"
     console.print(msg)
     console.print_json(json_str)
+
+
+if __name__ == "__main__":
+    import typer
+
+    from .config import read_conf
+
+    def main(
+        config: Path = Path("pyproject.toml"),
+        bump_version: VersionPart = VersionPart.minor,
+        output: Path = Path("pkgtags.json"),
+        only: list[str] = [],
+    ):
+        conf = read_conf(f"{config}")
+        make_release(conf, bump_version, output, only)
+
+    typer.run(main)
