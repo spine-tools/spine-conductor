@@ -16,7 +16,7 @@ from rich.console import Console
 from rich.prompt import Prompt
 from setuptools_scm import get_version
 
-from .config import read_toml, write_toml
+from .config import CONF, read_toml, write_toml
 
 EDITOR = os.environ.get(
     "EDITOR", "notepad" if sys.platform in ("win32", "cygwin") else "vim"
@@ -27,9 +27,6 @@ commit_hdr = """
 #
 """
 
-dependency_graph = {}  # to be read from config
-default_branch = "master"
-pkgname_re: re.Pattern[str]
 empty_re = re.compile(r"\s+")
 comma_space_re = re.compile(r"[,\s]+")
 
@@ -67,7 +64,7 @@ def is_circular(pkg: str) -> bool:
         if pkg in visited:
             return True
         visited.add(pkg)
-        to_visit.extend(dependency_graph[pkg])
+        to_visit.extend(CONF["dependency_graph"][pkg])
     return False
 
 
@@ -122,7 +119,7 @@ def update_pkg_deps(pkgs: dict[str, tuple[Repo, str, str]]):
         project = read_toml(pyproject_toml)
         dependecies: list[str] = []
         for dep in project["project"].get("dependencies", []):
-            dep_match = pkgname_re.match(dep)
+            dep_match = CONF["pkgname_re"].match(dep)
             if dep_match:
                 pkg_ = dep_match.group()
                 next_version = pkgs[pkg_][-1]
@@ -245,11 +242,7 @@ def make_release(
     config: dict, bump_version: VersionPart, output: Path, only: list[str] = []
 ):
     """Make release tag for all packages, and print a summary."""
-    global dependency_graph, pkgname_re
-    dependency_graph.update(config["dependency_graph"])
-    pkgname_re = re.compile(config["packagename_regex"])
-
-    branches = config.get("branches", {pkg: default_branch for pkg in dependency_graph})
+    branches = config["branches"]
     if len(only) > 0:
         config["repos"] = {pkg: config["repos"][pkg] for pkg in only}
         branches = {pkg: branches[pkg] for pkg in only}
