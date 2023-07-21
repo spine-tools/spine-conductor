@@ -51,7 +51,9 @@ class VersionPart(Enum):
     patch = "patch"
 
 
-def remote_name(repo: Repo) -> str:
+def remote_name(repo: Repo | str) -> str:
+    if isinstance(repo, str):
+        repo = Repo(repo)
     return Path(repo.remote().url).stem
 
 
