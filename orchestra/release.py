@@ -94,9 +94,14 @@ def guess_next_versions(
 ) -> list[str]:
     """Guess the next version for each repo.
 
-    By default, increment the minor version.
+    Bump the version part specified by `bump_version_part` (default: minor).
 
-    If `bump_version` is `Version.{major,patch}`, increment the major/patch version.
+    The repo versioning scheme is read from the `pyproject.toml` file
+    in the first repo.  However, if `bump_version_part` is
+    `VersionPart.patch`, the version scheme is set to `guess-next-dev`
+    to ensure that the version is bumped only if there are new
+    commits.  For the other cases, the version part is bumped
+    unconditionally.
 
     """
     project = read_toml(f"{repos[0].working_dir}/pyproject.toml")
