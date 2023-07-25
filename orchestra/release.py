@@ -143,9 +143,9 @@ def check_current_branch(repo_paths: dict[str, str], branches: dict[str, str]):
     for pkg, path in repo_paths.items():
         repo = Repo(path)
         if repo.active_branch.name != branches[pkg]:
-            raise RuntimeError(
-                f"{pkg}@{path} is on branch {repo.active_branch.name!r}, not {branches[pkg]!r}"
-            )
+            msg = f"{pkg}@{path} is on branch {repo.active_branch.name!r},"
+            msg += f" not {branches[pkg]!r}"
+            raise RuntimeError(msg)
 
 
 def prompt_add(repo: Repo) -> int:
