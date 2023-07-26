@@ -38,10 +38,11 @@ Example session:
    ```
 2. push the tags to GitHub
    ```shell
-   $ for repo in . venv/src/spine-items venv/src/spine-engine venv/src/spinedb-api;
-   > do 
-   > pushd $repo; git push origin master --tags;
-   > done
+   for repo in . venv/src/spine{-items,-engine,db-api}; do 
+       pushd $repo;
+       git push origin master --tags;
+       popd
+   done
    ```
 3. trigger the workflow
    ```shell
