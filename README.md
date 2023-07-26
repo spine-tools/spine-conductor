@@ -9,7 +9,7 @@ Example session:
 1. create the release tags
    ```shell
    $ cd /path/to/repo/Spine-Toolbox
-   $ /path/to/spine-conductor/tag_release.py -b patch
+   $ conduct release --bump patch
    Repository: /path/to/repo/Spine-Toolbox
    ## master...origin/master
     M pyproject.toml (1)
@@ -38,7 +38,7 @@ Example session:
    ```
 2. push the tags to GitHub
    ```shell
-   for repo in . venv/src/spine{-items,-engine,db-api}; do 
+   for repo in . venv/src/spine{-items,-engine,db-api}; do
        pushd $repo;
        git push origin master --tags;
        popd
