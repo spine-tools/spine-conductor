@@ -72,9 +72,9 @@ def test_bump_version(version, part, expect):
                 )
             ),
             chain(
-                ["1.0.0", "0.8.0", "0.7.3"],  # scm: 0.7.2
-                ["1.0.0", "0.2.3", "0.2.3"],  # scm-dep: 0.2.3
-                ["1.0.0", "0.3.1", "0.3.1"],  # scm-base: 0.3.1
+                ["1.0.0", "0.8.0", "0.7.3"],  # scm (HEAD): 0.7.2 + commits
+                ["1.0.0", "0.2.3", "0.2.3"],  # scm-dep (HEAD): 0.2.3
+                ["1.0.0", "0.3.1", "0.3.1"],  # scm-base (HEAD): 0.3.1
             ),
         ),
     ],
@@ -90,10 +90,11 @@ def test_guess_next_version(repo, bump, expect):
     indirect=["repo"],
 )
 def test_update_pkg_deps(repo, expect):
+    # for dependency graph, see tests/scm.toml
     next_versions = {
-        example_pkgs["scm"]: "0.8.0",  # scm: 0.7.2, depends on: scm-dep, scm-base
-        example_pkgs["scm-dep"]: "0.2.3",  # scm-dep: 0.2.3, depends on: scm, scm-base
-        example_pkgs["scm-base"]: "0.3.1",  # scm-base: 0.3.1, no scm deps
+        example_pkgs["scm"]: "0.8.0",  # depends on: scm-dep, scm-base
+        example_pkgs["scm-dep"]: "0.2.3",  # depends on: scm, scm-base
+        example_pkgs["scm-base"]: "0.3.1",  # no scm deps
     }
     update_pkg_deps(repo, next_versions)
     changes = repo.index.diff(None)
