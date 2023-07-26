@@ -117,23 +117,21 @@ def guess_next_versions(
     return [version.base_version for version in versions]
 
 
-def update_pkg_deps(pkgs: dict[str, tuple[Repo, str, str]]):
+def update_pkg_deps(repo: Repo, next_versions: dict[str, str]):
     """Update the versions of the dependencies for a given package/project"""
-    for pkg, (repo, _, next_version) in pkgs.items():
-        pyproject_toml = f"{repo.working_dir}/pyproject.toml"
-        project = read_toml(pyproject_toml)
-        dependecies: list[str] = []
-        for dep in project["project"].get("dependencies", []):
-            dep_match = CONF["pkgname_re"].match(dep)
-            if dep_match:
-                pkg_ = dep_match.group()
-                next_version = pkgs[pkg_][-1]
-                dependecies.append(f"{pkg_}>={next_version}")
-            else:
-                dependecies.append(dep)
-        if len(dependecies) > 0:
-            project["project"]["dependencies"] = dependecies
-        write_toml(project, pyproject_toml)
+    pyproject_toml = f"{repo.working_dir}/pyproject.toml"
+    project = read_toml(pyproject_toml)
+    dependecies: list[str] = []
+    for dep in project["project"].get("dependencies", []):
+        if dep_match := CONF["pkgname_re"].match(dep):
+            pkg_ = dep_match.group()
+            next_ver = next_versions[pkg_]
+            dependecies.append(f"{pkg_}>={next_ver}")
+        else:
+            dependecies.append(dep)
+    if len(dependecies) > 0:
+        project["project"]["dependencies"] = dependecies
+    write_toml(project, pyproject_toml)
 
 
 def check_current_branch(repo_paths: dict[str, str], branches: dict[str, str]):
@@ -208,19 +206,15 @@ def create_tags(
     _repos = [Repo(path) for path in repo_paths.values()]
     _tags = latest_tags(_repos)
     _next_versions = guess_next_versions(_repos, bump_version)
-    pkgs = {
-        pkg: (repo, tag, next_version)
-        for pkg, (repo, tag, next_version) in zip(
-            repo_paths, zip(_repos, _tags, _next_versions)
-        )
-    }
+    next_versions = dict(zip(repo_paths, _next_versions))
+    pkgs = dict(zip(repo_paths, zip(_repos, _tags, _next_versions)))
 
-    update_pkg_deps(pkgs)
     summary = {}
     for pkg, (repo, tag, next_version) in pkgs.items():
         if tag == next_version:
             continue
 
+        update_pkg_deps(repo, next_versions)
         prompt_add(repo)
         modified = [i.a_path for i in repo.index.diff(None)]
         if "pyproject.toml" in modified:  # must add pyproject.toml
