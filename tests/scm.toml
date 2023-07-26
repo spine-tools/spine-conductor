@@ -1,0 +1,18 @@
+[tool.conductor]
+packagename_regex = "sa-[a-z]+"
+
+[tool.conductor.dependency_graph]
+sa-foo = ["sa-bar", "sa-baz"]
+sa-bar = ["sa-foo", "sa-baz"]
+sa-baz = []
+
+[tool.conductor.repos]
+sa-foo = "testing/scm"
+sa-bar = "testing/scm-dep"
+sa-baz = "testing/scm-base"
+
+# # default
+# [tool.conductor.branches]
+# sa-foo = "master"
+# sa-bar = "master"
+# sa-baz = "master"
