@@ -28,7 +28,7 @@ def path_exists(path: Path) -> Path:
 @cli.callback()
 def main(ctx: typer.Context):
     """
-    Release and test orchestration tools for Python projects.
+    Release automation and test orchestration tools for Python projects.
     """
 
 
@@ -36,7 +36,8 @@ def main(ctx: typer.Context):
 def release(
     ctx: typer.Context,
     bump_version: Annotated[
-        VersionPart, typer.Option(help="Bump the major, minor, or patch version.")
+        VersionPart,
+        typer.Option("--bump", "-b", help="Bump the major, minor, or patch version."),
     ] = VersionPart.minor,
     output: Annotated[
         Path, typer.Option(help="JSON file to write package tags")
@@ -45,7 +46,7 @@ def release(
         list[str],
         typer.Option(help="Only tag the specified package (repeat for multiple)"),
     ] = [],
-    config: Annotated[Path, typer.Option(callback=path_exists)] = Path(
+    config: Annotated[Path, typer.Option("--conf", "-c", callback=path_exists)] = Path(
         "pyproject.toml"
     ),
 ):

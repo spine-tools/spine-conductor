@@ -15,5 +15,8 @@ dependencies = [
      "wheel",
 ]
 
+[tool.setuptools.packages.find]
+include = ["orchestra"]
+
 [project.scripts]
-conduct = "orchestra:cli"
+conduct = "orchestra:__main__.cli"
