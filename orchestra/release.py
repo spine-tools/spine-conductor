@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -16,9 +17,18 @@ from setuptools_scm import get_version
 
 from .config import CONF, read_toml, write_toml
 
-EDITOR = os.environ.get(
-    "EDITOR", "notepad" if sys.platform in ("win32", "cygwin") else "vim"
-)
+
+def find_editor():
+    """Find the editor to use for commit messages."""
+    nano = shutil.which("nano")
+    vim = shutil.which("vim") or shutil.which("nvim")
+    if sys.platform in ("win32",):
+        return nano or vim or "notepad"
+    else:
+        return os.environ.get("EDITOR", vim or nano or "vi")
+
+
+EDITOR = find_editor()
 commit_hdr = """
 # Please enter the commit message for your changes. Lines starting
 # with '#' will be ignored, and an empty message aborts the commit.
