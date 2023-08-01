@@ -38,7 +38,7 @@ def release(
     bump_version: Annotated[
         VersionPart,
         typer.Option("--bump", "-b", help="Bump the major, minor, or patch version."),
-    ] = VersionPart.minor,
+    ] = "minor",  # FIXME: enum default not working
     output: Annotated[
         Path, typer.Option(help="JSON file to write package tags")
     ] = Path("pkgtags.json"),
