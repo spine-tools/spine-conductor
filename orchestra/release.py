@@ -7,7 +7,6 @@ import shutil
 import subprocess
 import sys
 import textwrap
-import warnings
 
 from git import Repo
 from packaging import version
@@ -15,7 +14,8 @@ from rich.console import Console
 from rich.prompt import Prompt
 from setuptools_scm import get_version
 
-from .config import CONF, read_toml, write_toml
+from orchestra import ErrorCodes, format_exc
+from orchestra.config import CONF, read_toml, write_toml
 
 
 def find_editor():
@@ -170,8 +170,8 @@ def check_current_branch(repo_paths: dict[str, str], branches: dict[str, str]):
             errors.append((pkg, path, repo.active_branch.name, branches[pkg]))
     if len(errors) > 0:
         msg = "The following repos are not on the default branch:\n"
-        for pkg, path, branch, default_branch in errors:
-            msg += f"  {pkg}@{path}: {branch!r} != {default_branch!r} (default)\n"
+        for pkg, path, co_branch, branch in errors:
+            msg += f"  {pkg}@{path}: {co_branch!r} != {branch!r} (configured)\n"
         raise RuntimeError(msg)
 
 
@@ -257,12 +257,15 @@ def create_tags(
                 msg = invoke_editor(repo, next_version)
                 if msg == "" or empty_re.match(msg):
                     raise RuntimeError("empty commit message")
-                repo.index.commit(msg)
             except RuntimeError as err:
-                warnings.warn(f"aborting commit: {err}")
-                continue
+                console.print(format_exc(err, "Aborting commit!"))
+                sys.exit(ErrorCodes.COMMIT_ERR)
+            else:
+                repo.index.commit(msg)
 
-        console.print(f"Creating tag: {next_version}")
+        console.print(
+            f"Creating tag: {next_version} @ [yellow]{repo.head.commit.hexsha[:7]}"
+        )
         repo.create_tag(next_version)
         summary[remote_name(repo)] = next_version
     return summary
@@ -279,8 +282,8 @@ def make_release(
     try:
         check_current_branch(config["repos"], branches)
     except RuntimeError as err:
-        console.print(f"[red][bold]{err.__class__.__name__}:[/red][/bold] {err}")
-        sys.exit(1)
+        console.print(format_exc(err, "Aborting!"))
+        sys.exit(ErrorCodes.BRANCH_ERR)
 
     summary = create_tags(config["repos"], bump_version)
     json_str = json.dumps(summary, indent=4)
