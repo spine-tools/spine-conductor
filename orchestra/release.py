@@ -113,10 +113,11 @@ def guess_next_versions(
 
     """
     project = read_toml(f"{repos[0].working_dir}/pyproject.toml")
+    project = project["tool"]["setuptools_scm"]
     if bump_version_part == VersionPart.patch:
         version_scheme = "guess-next-dev"
     else:
-        version_scheme = project["tool"]["setuptools_scm"]["version_scheme"]
+        version_scheme = project.get("version_scheme", "release-branch-semver")
     versions = [
         version.parse(get_version(root=repo.working_dir, version_scheme=version_scheme))
         for repo in repos
