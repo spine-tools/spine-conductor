@@ -257,8 +257,9 @@ def make_release(
         branches = {pkg: branches[pkg] for pkg in only}
     try:
         check_current_branch(config["repos"], branches)
-    except Exception:
-        console.print_exception()
+    except RuntimeError as err:
+        console.print(f"[red][bold]{err.__class__.__name__}:[/red][/bold] {err}")
+        sys.exit(1)
 
     summary = create_tags(config["repos"], bump_version)
     json_str = json.dumps(summary, indent=4)
