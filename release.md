@@ -16,8 +16,7 @@ should be similar.  Since it requires automatic updates, I chose
 `pyproject.toml` as the library to r/w toml is quite mature, and both
 `setup.py` and `setup.cfg` are now deprecated.  The current spine
 packages mostly use `setup.cfg` except Spine Engine.  But even in that
-case, the `setup.py` is simple, so migration should be
-straightforward.
+case, the `setup.py` is simple, so migration is straightforward.
 
 # Toy example
 The above scheme is implemented in a set of 3 toy repos, where 2 of
@@ -27,26 +26,21 @@ them have circular dependency:
 - [scm-base](https://github.com/suvayu/scm-base) hosts the package `sa-baz`
 - `sa-foo` and `sa-bar` have a cyclic dependency
 
-Release is done by running the [`tag_release.py`](./tag_release.py)
-script.  The main repo (`scm`) has an action to build and publish
-wheels and tarballs to PyPI.  At the moment they are platform
+Release is done by running [`conduct release`](./orchestra/release.py).
+The primary repo (`scm`) has an action to build and publish
+wheels and tarballs to TestPyPI.  At the moment they are platform
 independent wheels, but when the need arises switching to platform
-dependent wheels should be possible.
+dependent wheels should be possible (e.g. by using [`cibuildwheel`](https://cibuildwheel.readthedocs.io/en/stable/)).
 
-## workflow that the release script automates
-1. update spine dependencies
-2. tag release
-3. repeat for all spine packages
-
-# dev build
+# Supporting developer build
 We can use [`requirements.txt`](./requirements.txt) to setup the dev
 environment.  If people like to choose the location of the checked out
 repo for all packages, they may modify the URLs.  This is necessary
 because editable install for dependencies is not yet supported using
-`pyproject.toml`.  Meaning the case when `sa-foo` (the main package)
-depends on `sa-bar`, and if I want to have editable install for both.
-To cover this case, we choose requirements file methodolody to setup
-the dev environment.
+`pyproject.toml`; i.e. the case when `sa-foo` (the primary package)
+depends on `sa-bar`, and you want to have editable install for both.
+To cover this case, we choose requirements file to setup the dev
+environment.
 
 *Note:* The requirements file need not list other dependencies as
 pyproject.toml includes them.  So this is sufficient:
@@ -56,7 +50,9 @@ pyproject.toml includes them.  So this is sufficient:
 -e .
 ```
 
-## version options for dev build
+## Version options for dev build
+The version information is derived from the repo history, the choice
+are the following (latest existing tag is **0.3.1**):
 ```python
 >>> from setuptools_scm import get_version
 >>> get_version(version_scheme="python-simplified-semver")
@@ -76,10 +72,10 @@ Preference:
 - `post-release`: clear and concise
 
 # Q&A
-## how to make a release?
-invoke the release script with a config file
+## How to make a release? (with the toy example)
+Invoke the release command with a config file
 ```shell
-./tag_release.py -c ./path/to/release.toml
+conduct release -c ./path/to/release.toml
 ```
 or configure it in your project's `pyproject.toml`.  Every config
 option is expected to be under the `tool.conductor` section.
@@ -106,16 +102,44 @@ sa-baz = "../scm-base"
 # sa-baz = "master"
 ```
 
-## how is the next version picked?
+## How to make a release of the Spine repositories?
+The terminal command is identical as the toy example, however the
+configuration for Spine repositories could be as shown below:
+```toml
+[tool.conductor]
+packagename_regex = "spine(toolbox|(db){0,1}_[a-z]+)"  # package name on PyPI
+
+[tool.conductor.dependency_graph]
+spinetoolbox = ["spine_items", "spine_engine", "spinedb_api"]
+spine_items  = ["spinetoolbox", "spine_engine", "spinedb_api"]
+spine_engine = ["spinedb_api"]
+spinedb_api  = []
+
+[tool.conductor.repos]
+spinetoolbox = "."
+spine_items  = "venv/src/spine-items"
+spine_engine = "venv/src/spine-engine"
+spinedb_api  = "venv/src/spinedb-api"
+
+# # default
+# [tool.conductor.branches]
+# spinetoolbox = "master"
+# spine_items  = "master"
+# spine_engine = "master"
+# spinedb_api  = "master"
+```
+
+## How is the next version picked?
 By default, the minor version is bumped, but if you want, you can do a
 patch/major release by passing `-b patch` or `-b major` to the release
-script.
+command.
 
-## how to limit the new release to a subset of packages?
+## How to limit the new release to a subset of packages?
 You can limit the new releases to a subset of packages by passing a
-list like this: `--only sa-foo sa-baz`
+list like this: `--only sa-foo --only sa-baz` (you have to repeat the
+`--only` option for each package).
 
-## how is circular dependency between packages handled?
+## How is circular dependency between packages handled?
 It is included in the config under the section `dependency_graph`.  It
 is equivalent to the following (version agnostic) dictionary:
 ```python
@@ -126,25 +150,30 @@ dependency_graph = {
 }
 ```
 
-## release commit experience
+## What is the user experience of making a release commit?
 The commit interface is almost identical to command line git usage.
-So if you have your `EDITOR` variable setup, it should just work™.  If
-not, it defaults to opening the `COMMIT_EDITMSG` file in `vim`.
+If your environment sets the `EDITOR` variable, it should just work™.
+If not, the `conduct release` command tries to find an editor that
+works in the terminal depending on your platform, it falls back to in
+`vi` (Linux/Mac OS) or `notepad` (Windows).  Basically after adding
+any edited files, you will need to provide a commit message for Git
+(by editing the `.git/COMMIT_EDITMSG` file).
 
 Just like CLI Git, you can cancel a commit in the usual ways: cancel
-the edit, or provide an empty commit message.
+the edit by terminating your editor with `Ctrl-c`, or provide an empty
+commit message.
 
-## where are the toy packages?
+## Where are the toy packages?
 You can find them on Test PyPI
 - [`sa-foo`](https://test.pypi.org/project/sa-foo/#history)
 - [`sa-bar`](https://test.pypi.org/project/sa-bar/#history)
 - [`sa-baz`](https://test.pypi.org/project/sa-baz/#history)
 
-## testing the release packages before publishing
-We should also consider running the test suite on the built wheels
-before publishing.
+## Testing the release packages before publishing (WIP)
+The publishing workflow runs the test suite on the built wheels before
+publishing to PyPI.
 
-## how does it look when packages are published from this workflow?
+## How does it look when packages are published from this workflow?
 This is an [example
 run](https://github.com/suvayu/scm/actions/runs/5256852022) for the
 `scm` package.
