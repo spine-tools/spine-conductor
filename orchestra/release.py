@@ -128,8 +128,23 @@ def guess_next_versions(
     return [version.base_version for version in versions]
 
 
+class redict(dict):
+    def __missing__(self, key):
+        if "-" in key:
+            key = key.replace("-", "_")
+        elif "_" in key:
+            key = key.replace("_", "-")
+        else:
+            raise KeyError(key)
+        if key in self:
+            return self[key]
+        # FIXME: how do I point to actual line that called __getitem__?
+        raise KeyError(key)
+
+
 def update_pkg_deps(repo: Repo, next_versions: dict[str, str]):
     """Update the versions of the dependencies for a given package/project"""
+    next_versions = redict(next_versions)
     pyproject_toml = f"{repo.working_dir}/pyproject.toml"
     project = read_toml(pyproject_toml)
     dependecies: list[str] = []
