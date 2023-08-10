@@ -203,6 +203,7 @@ def prompt_add(repo: Repo) -> int:
     if response == "":
         return added
     for choice in map(int, comma_space_re.split(response)):
+        # trim 'a/path/to/file' or 'b/path/to/file' used by git
         file_path = status[choice][3:].strip()
         repo.index.add(file_path)
         added += 1
@@ -224,6 +225,7 @@ def invoke_editor(repo: Repo, tag: str) -> str:
                 "",
                 textwrap.dedent(commit_hdr.strip()),
                 f"# Repository: {repo.working_dir}",
+                # comment all lines, including empty ones
                 textwrap.indent(repo.git.status(), "# ", predicate=lambda _: True),
             ]
         )
@@ -231,7 +233,8 @@ def invoke_editor(repo: Repo, tag: str) -> str:
         tmp_file.write(msg)
         tmp_file.flush()
 
-        # Open the temporary file in the user's default editor
+        # Open the temporary file in the user's default editor; use
+        # str.split() to support EDITOR command with arguments
         ret = subprocess.run([*EDITOR.split(), tmp_file.name])
         if ret.returncode != 0:
             raise RuntimeError("cancelled by user")

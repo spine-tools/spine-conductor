@@ -1,7 +1,7 @@
 # About `spine-conductor`
 
-It is a collection of release orchestration scripts, and CI workflows
-to simplify release of Spine packages.
+It is a collection of release orchestration & automation scripts, and
+CI workflows to simplify Spine tool development tasks.
 
 # Usage
 
@@ -9,36 +9,38 @@ Example session:
 1. create the release tags
    ```shell
    $ cd /path/to/repo/Spine-Toolbox
-   $ conduct release --bump patch
+   $ conduct release --bump patch -c release.toml  # or include in pyproject.toml
    Repository: /path/to/repo/Spine-Toolbox
    ## master...origin/master
     M pyproject.toml (1)
    Select the files to add (comma/space separated list): 1
-   Creating tag: 0.7.2
-   Repository: /path/to/repo/Spine-Toolbox/venv/src/spine-items
+   Creating tag: 0.6.19 @ 034fb4b
+   Repository: /path/to/repo/spine-items
    ## master...origin/master
     M pyproject.toml (1)
-   Select the files to add (comma/space separated list):
-   Creating tag: 0.2.3
-   Repository: /path/to/repo/Spine-Toolbox/venv/src/spine-engine
+   Select the files to add (comma/space separated list): 1
+   Creating tag: 0.20.1 @ 5848e25
+   Repository: /path/to/repo/spine-engine
+   ## master...origin/master
+    M pyproject.toml (1)
+   Select the files to add (comma/space separated list): 1
+   Creating tag: 0.22.1 @ e312db2
+   Repository: /path/to/repo/Spine-Database-API
    ## master...origin/master
    Select the files to add (comma/space separated list):
-   Creating tag: 0.3.1
-   Repository: /path/to/repo/Spine-Toolbox/venv/src/spinedb-api
-   ## master...origin/master
-   Select the files to add (comma/space separated list):
-   Creating tag: 0.2.1
-   Package Tags summary 💾 ➡ pkgtags.json:
+   Creating tag: 0.29.1 @ d9ed86e
+
+   Package Tags summary  💾 ➡ 'pkgtags.json':
    {
-       "Spine-Toolbox": "0.7.2",
-       "spine-items": "0.2.3",
-       "spine-engine": "0.3.1"
-       "Spine-Database-API": "0.2.1",
+     "Spine-Toolbox": "0.6.19",
+     "spine-items": "0.20.1",
+     "spine-engine": "0.22.1",
+     "Spine-Database-API": "0.29.1"
    }
    ```
 2. push the tags to GitHub
    ```shell
-   for repo in . venv/src/spine{-items,-engine,db-api}; do
+   for repo in . /path/to/repo/{Spine-Database-API,spine-{items,engine}}; do
        pushd $repo;
        git push origin master --tags;
        popd
@@ -57,7 +59,7 @@ Example session:
 The release tagging script is configured in TOML format as shown below:
 ```toml
 [tool.conductor]
-packagename_regex = "spine(toolbox|(db){0,1}_[a-z]+)"  # package name on PyPI
+packagename_regex = "spine(toolbox|(db){0,1}[_-][a-z]+)"  # package name on PyPI
 
 [tool.conductor.dependency_graph]
 spinetoolbox = ["spine_items", "spine_engine", "spinedb_api"]
@@ -69,7 +71,7 @@ spinedb_api  = []
 spinetoolbox = "."
 spine_items  = "venv/src/spine-items"
 spine_engine = "venv/src/spine-engine"
-spinedb_api  = "venv/src/spinedb-api" 
+spinedb_api  = "venv/src/spinedb-api"
 
 # # default
 # [tool.conductor.branches]
