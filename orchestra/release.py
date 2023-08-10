@@ -13,6 +13,7 @@ from packaging import version
 from rich.console import Console
 from rich.prompt import Prompt
 from setuptools_scm import get_version
+from tomlkit.items import Array, Trivia
 
 from orchestra import ErrorCodes, format_exc
 from orchestra.config import CONF, read_toml, write_toml
@@ -147,16 +148,12 @@ def update_pkg_deps(repo: Repo, next_versions: dict[str, str]):
     next_versions = redict(next_versions)
     pyproject_toml = f"{repo.working_dir}/pyproject.toml"
     project = read_toml(pyproject_toml)
-    dependecies: list[str] = []
-    for dep in project["project"].get("dependencies", []):
+    dependencies = project["project"].get("dependencies", Array([], Trivia()))
+    for i, dep in enumerate(dependencies):
         if dep_match := CONF["pkgname_re"].match(dep):
             pkg_ = dep_match.group()
             next_ver = next_versions[pkg_]
-            dependecies.append(f"{pkg_}>={next_ver}")
-        else:
-            dependecies.append(dep)
-    if len(dependecies) > 0:
-        project["project"]["dependencies"] = dependecies
+            dependencies[i] = f"{pkg_}>={next_ver}"
     write_toml(project, pyproject_toml)
 
 

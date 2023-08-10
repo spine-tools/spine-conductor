@@ -21,7 +21,7 @@ console = Console()
 
 
 def read_toml(path: str) -> dict:
-    with open(path, mode="r") as toml_file:
+    with open(path, mode="r", newline="") as toml_file:
         return tomlkit.load(toml_file)
 
 
