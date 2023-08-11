@@ -17,7 +17,7 @@ from orchestra.release import (
     remote_name,
 )
 
-from .conftest import clone_repo, example_pkgs
+from .conftest import clone_repo, next_versions
 
 
 @pytest.mark.parametrize(
@@ -90,12 +90,6 @@ def test_guess_next_version(repo, bump, expect):
     indirect=["repo"],
 )
 def test_update_pkg_deps(repo, expect):
-    # for dependency graph, see tests/scm.toml
-    next_versions = {
-        example_pkgs["scm"]: "0.8.0",  # depends on: scm-dep, scm-base
-        example_pkgs["scm-dep"]: "0.2.3",  # depends on: scm, scm-base
-        example_pkgs["scm-base"]: "0.3.1",  # no scm deps
-    }
     update_pkg_deps(repo, next_versions)
     changes = repo.index.diff(None)
     if expect:
