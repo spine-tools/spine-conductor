@@ -7,9 +7,9 @@ sa-bar = ["sa-foo", "sa-baz"]
 sa-baz = []
 
 [tool.conductor.repos]
-sa-foo = "testing/scm"
-sa-bar = "testing/scm-dep"
-sa-baz = "testing/scm-base"
+sa-foo = "tests/scm"
+sa-bar = "tests/scm-dep"
+sa-baz = "tests/scm-base"
 
 # # default
 # [tool.conductor.branches]
