@@ -1,10 +1,13 @@
+from copy import deepcopy
 from itertools import chain, product
 from pathlib import Path
 
-from git import Repo
 from packaging.version import Version
 import pytest
+import tomlkit
 
+from orchestra import ErrorCodes
+from orchestra.config import CONF, read_toml
 from orchestra.release import (
     VersionPart,
     bump_version,
@@ -12,12 +15,13 @@ from orchestra.release import (
     guess_next_versions,
     is_circular,
     latest_tags,
+    make_release,
     update_pkg_deps,
     version_parse_no_except,
     remote_name,
 )
 
-from .conftest import clone_repo, next_versions
+from .conftest import clone_repo, example_pkgs, next_versions
 
 
 @pytest.mark.parametrize(
@@ -98,10 +102,67 @@ def test_update_pkg_deps(repo, expect):
         assert changes == []
 
 
+@pytest.mark.parametrize("repo", ["scm"], indirect=True)
+def test_alt_pkg_names(repo):
+    # setup
+    pyproject = f"{repo.working_dir}/pyproject.toml"
+    pkgconf = read_toml(pyproject)
+    deps = pkgconf["project"]["dependencies"]
+    for i, dep in enumerate(deps):
+        if "sa-bar" in dep:
+            deps[i] = dep.replace("-", "_")
+    with open(pyproject, mode="w") as f:
+        tomlkit.dump(pkgconf, f)
+    assert repo.index.diff(None)
+    repo.index.add("pyproject.toml")
+
+    # test
+    update_pkg_deps(repo, next_versions)  # no KeyError
+    assert repo.index.diff(None) == []  # no changes
+
+
+# only 'scm' has changes, so only 'scm-dep' deps will be updated
+@pytest.mark.parametrize("repo", ["scm-dep"], indirect=True)
+def test_preserve_line_endings(repo):
+    # setup
+    pyproject = Path(f"{repo.working_dir}/pyproject.toml")
+    txt = pyproject.read_text().replace("\n", "\r\n")
+    with open(pyproject, mode="w") as tf:
+        tf.write(txt)
+    assert repo.index.diff(None)  # pyproject.toml rewritten w/ CRLF LE
+    repo.index.add("pyproject.toml")
+
+    # test
+    update_pkg_deps(repo, next_versions)
+    diff, *_ = repo.index.diff(None, create_patch=True)
+    txt = diff.diff.decode("utf8")
+    # 1 header + 2 x 3 line context + 2 line change (+/-)
+    assert len(txt.splitlines()) == 9
+
+
 @pytest.mark.parametrize("name", ["scm", "scm-dep", "scm-base"])
 def test_check_current_branch(name):
+    pkgname = example_pkgs[name]
+    path = {pkgname: Path(__file__).parent / name}
+    check_current_branch(path, {pkgname: "master"})
+
+    with pytest.raises(RuntimeError, match=f".+{pkgname}.+'master'.+'not-there'"):
+        check_current_branch(path, {pkgname: "not-there"})
+
+    # alternative keys
     path = {name: Path(__file__).parent / name}
     check_current_branch(path, {name: "master"})
 
     with pytest.raises(RuntimeError, match=f".+{name}.+'master'.+'not-there'"):
         check_current_branch(path, {name: "not-there"})
+
+
+@pytest.mark.parametrize("pkgname", ["sa-foo", "sa-bar", "sa-baz"])
+def test_make_release_ret_code(pkgname, capsys):
+    config = deepcopy(CONF)
+    config["branches"].update({pkgname: "not-there"})
+    with pytest.raises(SystemExit, match=f"{ErrorCodes.BRANCH_ERR}"):
+        make_release(config, VersionPart.minor, Path("whatever.json"))
+    outerr = capsys.readouterr()
+    tokens = ("RuntimeError", f"{pkgname}", "not-there", "Aborting")
+    assert all(token in outerr.out for token in tokens)
