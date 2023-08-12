@@ -160,6 +160,9 @@ def update_pkg_deps(repo: Repo, next_versions: dict[str, str]):
 def check_current_branch(repo_paths: dict[str, str], branches: dict[str, str]):
     """Check that the current branch matches the default branch for each repo.
 
+    Note: It's not necessary that the dictionary keys are package
+    names, as long as they are consistent between the two arguments.
+
     Parameters
     ----------
     repo_paths : dict[str, str]
@@ -183,7 +186,7 @@ def check_current_branch(repo_paths: dict[str, str], branches: dict[str, str]):
     if len(errors) > 0:
         msg = "The following repos are not on the default branch:\n"
         for pkg, path, co_branch, branch in errors:
-            msg += f"  {pkg}@{path}: {co_branch!r} != {branch!r} (configured)\n"
+            msg += f"  {pkg}@{path}: {co_branch!r}* != {branch!r}\n"
         raise RuntimeError(msg)
 
 
