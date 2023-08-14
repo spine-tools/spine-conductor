@@ -51,7 +51,7 @@ def version_parse_no_except(vers: str) -> version.Version | None:
     try:
         return version.parse(vers)
     except version.InvalidVersion:
-        return
+        return None
 
 
 class VersionPart(Enum):

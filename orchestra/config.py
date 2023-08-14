@@ -1,5 +1,6 @@
 import re
 import sys
+from typing import Any
 
 from rich.console import Console
 import tomlkit
@@ -7,7 +8,7 @@ import tomlkit
 from orchestra import ErrorCodes, format_exc
 
 # fmt: off
-CONF = {
+CONF: dict[str, Any] = {
     "packagename_regex": "",    # in file
     "pkgname_re": None,         # in memory, re.Pattern[str], constructed from above
     "repos": {},                # from file

@@ -103,6 +103,9 @@ def opts_to_flags(k: str, v: Any, no_eq: bool = False) -> str:
             return f"--{_k} {v}" if no_eq else f"--{_k}={v}"
         case (str() as _k, v):
             return f"-{_k} {v}"
+    # FIXME: mypy incorrectly fails exhaustiveness check:
+    # https://github.com/python/mypy/issues/12010
+    return ""
 
 
 def fmt_opts(opts: dict[str, Any], no_eq: bool = False) -> list[str]:
@@ -408,7 +411,8 @@ def run_xtest(config: dict, ref: list[str], dev: list[str]):
         [repos[name].working_dir for name in dev_pkgs],
         [f"{whl}" for name, whl in whls.items() if name not in dev_pkgs],
     )
-    pip_install(venv_name, requires=our_deps, no_deps=True)
+    # NOTE: git.Repo.working_dir isn't typed
+    pip_install(venv_name, requires=our_deps, no_deps=True)  # type: ignore
 
     for name in dev_pkgs:
         repo = repos[name]

@@ -61,8 +61,10 @@ class Rel_t(Enum):
     pre = (False, True)
     rel = (False, False)
 
-    def __eq__(self, version: Version) -> bool:
-        return self.value == (version.is_devrelease, version.is_prerelease)
+    def __eq__(self, version) -> bool:
+        if isinstance(version, Version):
+            return self.value == (version.is_devrelease, version.is_prerelease)
+        return super().__eq__(version)
 
 
 def pkgs_meta(

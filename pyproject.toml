@@ -20,3 +20,6 @@ include = ["orchestra"]
 
 [project.scripts]
 conduct = "orchestra:__main__.cli"
+
+[tool.mypy]
+ignore_missing_imports = true
