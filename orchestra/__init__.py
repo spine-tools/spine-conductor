@@ -10,7 +10,9 @@ class ErrorCodes(IntEnum):
 def format_exc(exc: Exception, notes: str = "") -> str:
     """Format an exception as a string."""
     if notes:
-        exc.add_note(notes)
+        if not hasattr(exc, "__notes__"):
+            exc.__notes__ = []
+        exc.__notes__ += [notes]
     err = f"[red][bold]{exc.__class__.__name__}:[/red][/bold] {exc}"
     trailer = ", ".join(getattr(exc, "__notes__", []))
     if trailer:
