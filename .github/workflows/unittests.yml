@@ -1,0 +1,100 @@
+name: Unit tests
+
+on:
+  push:
+    paths-ignore:
+      - "doc/**"
+  pull_request:
+    paths-ignore:
+      - "doc/**"
+
+jobs:
+  format:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          allow-prereleases: true
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black toml
+      - name: Format source w/ black
+        # fail when file(s) would be formatted
+        run: black --check orchestra tests
+
+  lint:
+    if: "!(contains(github.event.head_commit.message, 'skip ci'))"
+
+    strategy:
+      matrix:
+        pyver: ["py310", "py311"]
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Ruff with Python target version ${{ matrix.pyver }}
+        uses: chartboost/ruff-action@v1
+        with:
+          src: orchestra
+          args: "check --target-version ${{ matrix.pyver }}"
+
+  test:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    needs: [format, lint]
+
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          allow-prereleases: true
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+      - name: Run pytest
+        run: |
+          pytest -vv tests
+
+  type-hints:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          allow-prereleases: true
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        continue-on-error: true
+        # b/c mypy returns non-zero code, and the step fails
+        run: |
+          python -m pip install --upgrade pip
+          pip install mypy{,_extensions}
+          echo y | mypy --install-types
+      - name: Type check w/ mypy
+        run: mypy --check-untyped-defs --pretty orchestra
