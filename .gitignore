@@ -1,3 +1,10 @@
+*~
+\#*\#
+
+__pycache__
+
 .idea
+.vscode
+
 build
-spine_conductor.egg-info
+*.egg-info
