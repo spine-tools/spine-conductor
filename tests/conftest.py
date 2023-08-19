@@ -37,4 +37,4 @@ def clone_repo(name: str):
 def repo(request):
     repo = clone_repo(request.param)
     yield repo
-    repo.index.reset(commit="HEAD", working_tree=True)
+    repo.head.reset(commit="origin/master", working_tree=True)
