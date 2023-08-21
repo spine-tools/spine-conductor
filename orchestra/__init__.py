@@ -9,10 +9,12 @@ class ErrorCodes(IntEnum):
 
 def format_exc(exc: Exception, notes: str = "") -> str:
     """Format an exception as a string."""
+    # FIXME: maybe support multiple lines by making notes a list[str]?
     if notes:
-        if not hasattr(exc, "__notes__"):
-            exc.__notes__ = []
-        exc.__notes__ += [notes]
+        # NOTE: the get-set madness is to pass linting on 3.10
+        _notes = getattr(exc, "__notes__", [])
+        _notes += [notes]
+        setattr(exc, "__notes__", _notes)
     err = f"[red][bold]{exc.__class__.__name__}:[/red][/bold] {exc}"
     trailer = ", ".join(getattr(exc, "__notes__", []))
     if trailer:
