@@ -27,7 +27,7 @@ def read_toml(path: str) -> dict:
 
 
 def write_toml(data: dict, path: str):
-    with open(path, mode="w") as toml_file:
+    with open(path, mode="w", newline="") as toml_file:
         tomlkit.dump(data, toml_file)
 
 
