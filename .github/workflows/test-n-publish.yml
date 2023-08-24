@@ -73,7 +73,7 @@ jobs:
       with:
         repository: 'spine-tools/${{ matrix.pkg }}'
         path: ${{ matrix.pkg }}
-        ref: ${{ inputs['Spine-Toolbox'] }}
+        ref: ${{ inputs[matrix.pkg] }}
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
