@@ -127,7 +127,7 @@ def test_preserve_line_endings(repo):
     # setup
     pyproject = Path(f"{repo.working_dir}/pyproject.toml")
     txt = pyproject.read_text().replace("\n", "\r\n")
-    with open(pyproject, mode="w") as tf:
+    with open(pyproject, mode="w", newline="") as tf:
         tf.write(txt)
     assert repo.index.diff(None)  # pyproject.toml rewritten w/ CRLF LE
     repo.index.add("pyproject.toml")
