@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -21,12 +22,20 @@ from orchestra.config import CONF, read_toml, write_toml
 
 def find_editor():
     """Find the editor to use for commit messages."""
-    nano = shutil.which("nano")
-    vim = shutil.which("vim") or shutil.which("nvim")
-    if sys.platform in ("win32",):
-        return nano or vim or "notepad"
-    else:
-        return os.environ.get("EDITOR", vim or nano or "vi")
+    if editor := Repo().config_reader().get("core", "editor", fallback=None):
+        return editor
+
+    def which():
+        editors = ("nano", "vim", "nvim", "emacs")
+        if sys.platform in ("win32",):
+            editors = (*editors, "notepad++", "notepad")
+        else:
+            editors = (*editors, "vi")
+        for editor in map(shutil.which, editors):
+            if editor:
+                return editor
+
+    return os.environ.get("EDITOR", which())
 
 
 EDITOR = find_editor()
@@ -237,8 +246,8 @@ def invoke_editor(repo: Repo, tag: str) -> str:
         tmp_file.flush()
 
         # Open the temporary file in the user's default editor; use
-        # str.split() to support EDITOR command with arguments
-        ret = subprocess.run([*EDITOR.split(), tmp_file.name])
+        # shlex.split() to support EDITOR command with arguments
+        ret = subprocess.run([*shlex.split(EDITOR), tmp_file.name])
         if ret.returncode != 0:
             raise RuntimeError("cancelled by user")
 
