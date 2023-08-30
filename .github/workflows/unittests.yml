@@ -90,11 +90,8 @@ jobs:
           allow-prereleases: true
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        continue-on-error: true
-        # b/c mypy returns non-zero code, and the step fails
         run: |
           python -m pip install --upgrade pip
           pip install mypy{,_extensions}
-          echo y | mypy --install-types
       - name: Type check w/ mypy
-        run: mypy --check-untyped-defs --pretty orchestra
+        run: echo y | mypy --install-types --check-untyped-defs --pretty orchestra tests
