@@ -10,7 +10,9 @@ on:
 
 jobs:
   format:
-    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    if: |
+      (github.event_name == 'push' || github.event.pull_request.head.repo.fork) &&
+      (!contains(github.event.head_commit.message, 'skip ci'))
 
     strategy:
       matrix:
@@ -33,7 +35,9 @@ jobs:
         run: black --check orchestra tests
 
   lint:
-    if: "!(contains(github.event.head_commit.message, 'skip ci'))"
+    if: |
+      (github.event_name == 'push' || github.event.pull_request.head.repo.fork) &&
+      (!contains(github.event.head_commit.message, 'skip ci'))
 
     strategy:
       matrix:
@@ -49,7 +53,9 @@ jobs:
           args: "check --target-version ${{ matrix.pyver }}"
 
   test:
-    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    if: |
+      (github.event_name == 'push' || github.event.pull_request.head.repo.fork) &&
+      (!contains(github.event.head_commit.message, 'skip ci'))
     needs: [format, lint]
 
     strategy:
@@ -74,7 +80,9 @@ jobs:
           pytest -vv tests
 
   type-hints:
-    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    if: |
+      (github.event_name == 'push' || github.event.pull_request.head.repo.fork) &&
+      (!contains(github.event.head_commit.message, 'skip ci'))
 
     strategy:
       matrix:
