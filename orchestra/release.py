@@ -26,7 +26,7 @@ def find_editor():
         return editor
 
     def which():
-        editors = ("nano", "vim", "nvim", "emacs")
+        editors: tuple[str, ...] = ("nano", "vim", "nvim", "emacs")
         if sys.platform in ("win32",):
             editors = (*editors, "notepad++", "notepad")
         else:
