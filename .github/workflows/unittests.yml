@@ -62,11 +62,18 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
         os: [ubuntu-latest, windows-latest, macos-latest]
+        autocrlf: ["true", "false"]
+        exclude:
+          - os: ubuntu-latest
+            autocrlf: "true"
+          - os: macos-latest
+            autocrlf: "true"
 
     runs-on: ${{ matrix.os }}
     steps:
       - name: Disable autocrlf so that we can test preserve LE on Windows
-        run: git config --global core.autocrlf false
+        if: matrix.os == 'windows-latest'
+        run: git config --global core.autocrlf ${{ matrix.autocrlf }}
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
