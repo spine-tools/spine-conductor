@@ -2,6 +2,7 @@ from copy import deepcopy
 from itertools import chain, product
 from pathlib import Path
 
+from git import Repo
 from packaging.version import Version
 import pytest
 import tomlkit
@@ -129,7 +130,10 @@ def test_preserve_line_endings(repo):
     txt = pyproject.read_text().replace("\n", "\r\n")
     with open(pyproject, mode="w", newline="") as tf:
         tf.write(txt)
-    assert repo.index.diff(None)  # pyproject.toml rewritten w/ CRLF LE
+    if "true" == Repo().config_reader().get("core", "autocrlf", fallback=None):
+        assert repo.index.diff(None) == []  # noop when autocrlf is 'true'
+    else:
+        assert repo.index.diff(None)  # pyproject.toml rewritten w/ CRLF LE
     repo.index.add("pyproject.toml")
 
     # test
