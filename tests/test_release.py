@@ -13,6 +13,7 @@ from orchestra.release import (
     VersionPart,
     bump_version,
     check_current_branch,
+    find_editor,
     guess_next_versions,
     is_circular,
     latest_tags,
@@ -170,3 +171,16 @@ def test_make_release_ret_code(pkgname, capsys):
     outerr = capsys.readouterr()
     tokens = ("RuntimeError", f"{pkgname}", "not-there", "Aborting")
     assert all(token in outerr.out for token in tokens)
+
+
+def test_find_editor():
+    # FIXME: test for editor from 1) gitconfig, 2) env, 3) default;
+    # for 1) and 2) set the config/env, and mark the tests to run
+    # separately
+    assert find_editor() is not None
+
+
+@pytest.mark.xfail(reason="platform should have atleast vi/notepad")
+def test_find_editor_fail():
+    with pytest.raises(RuntimeError, match="No editor found"):
+        find_editor()

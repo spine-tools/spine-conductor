@@ -10,6 +10,7 @@ import sys
 import textwrap
 
 from git import Repo
+from git.config import GitConfigParser
 from packaging import version
 from rich.console import Console
 from rich.prompt import Prompt
@@ -22,7 +23,8 @@ from orchestra.config import CONF, read_toml, write_toml
 
 def find_editor():
     """Find the editor to use for commit messages."""
-    if editor := Repo().config_reader().get("core", "editor", fallback=None):
+    conf = GitConfigParser(Path.home() / ".gitconfig")
+    if editor := conf.get("core", "editor", fallback=None):
         return editor
 
     def which():
@@ -34,6 +36,7 @@ def find_editor():
         for editor in map(shutil.which, editors):
             if editor:
                 return editor
+        raise RuntimeError("couldn't find an editor")
 
     return os.environ.get("EDITOR", which())
 
