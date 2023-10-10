@@ -1,5 +1,6 @@
 from copy import deepcopy
 from itertools import chain, product
+from io import StringIO
 from pathlib import Path
 
 from git import Repo
@@ -17,6 +18,7 @@ from orchestra.release import (
     is_circular,
     latest_tags,
     make_release,
+    prompt_add,
     update_pkg_deps,
     version_parse_no_except,
     remote_name,
@@ -87,6 +89,15 @@ def test_bump_version(version, part, expect):
 )
 def test_guess_next_version(repo, bump, expect):
     assert guess_next_versions([repo], bump)[0] == expect
+
+
+@pytest.mark.parametrize("repo", ["scm"], indirect=True)
+def test_prompt_add(repo, monkeypatch):
+    pkg_dash2us(f"{repo.working_dir}/pyproject.toml")  # edit a file
+    monkeypatch.setattr("sys.stdin", StringIO("1"))
+    prompt_add(repo)
+    diff, *_ = repo.index.diff("HEAD", create_patch=True)
+    assert diff.diff.count(b"\n") == 9
 
 
 @pytest.mark.parametrize(

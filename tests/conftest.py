@@ -3,7 +3,7 @@ from git import Repo
 import pytest
 import tomlkit
 
-from orchestra.config import read_conf, read_toml
+from orchestra.config import read_conf, read_toml, write_toml
 
 # exclude tests inside example repos from discovery
 collect_ignore_glob = ["scm*"]
@@ -47,5 +47,4 @@ def pkg_dash2us(pyproject: str):
     for i, dep in enumerate(deps):
         if "sa-bar" in dep:
             deps[i] = dep.replace("-", "_")
-    with open(pyproject, mode="w") as f:
-        tomlkit.dump(pkgconf, f)
+    write_toml(pkgconf, pyproject)
