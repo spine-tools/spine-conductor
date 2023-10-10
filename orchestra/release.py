@@ -220,7 +220,7 @@ def prompt_add(repo: Repo) -> int:
     for choice in map(int, comma_space_re.split(response)):
         # trim 'a/path/to/file' or 'b/path/to/file' used by git
         file_path = status[choice][3:].strip()
-        repo.index.add(file_path)
+        repo.git.add(file_path)
         added += 1
     return added
 
@@ -279,7 +279,7 @@ def create_tags(
         prompt_add(repo)
         modified = [i.a_path for i in repo.index.diff(None)]
         if "pyproject.toml" in modified:  # must add pyproject.toml
-            repo.index.add("pyproject.toml")
+            repo.git.add("pyproject.toml")
         added = len([i for i in repo.index.diff("HEAD")])
 
         if added > 0:

@@ -137,7 +137,7 @@ def test_preserve_line_endings(repo):
         assert repo.index.diff(None) == []  # noop when autocrlf is 'true'
     else:
         assert repo.index.diff(None)  # pyproject.toml rewritten w/ CRLF LE
-    repo.index.add("pyproject.toml")
+    repo.git.add("pyproject.toml")
 
     # test
     update_pkg_deps(repo, next_versions)
