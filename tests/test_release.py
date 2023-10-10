@@ -5,10 +5,9 @@ from pathlib import Path
 from git import Repo
 from packaging.version import Version
 import pytest
-import tomlkit
 
 from orchestra import ErrorCodes
-from orchestra.config import CONF, read_toml
+from orchestra.config import CONF
 from orchestra.release import (
     VersionPart,
     bump_version,
@@ -23,7 +22,7 @@ from orchestra.release import (
     remote_name,
 )
 
-from .conftest import clone_repo, example_pkgs, next_versions
+from .conftest import clone_repo, pkg_dash2us, example_pkgs, next_versions
 
 
 @pytest.mark.parametrize(
@@ -106,15 +105,7 @@ def test_update_pkg_deps(repo, expect):
 
 @pytest.mark.parametrize("repo", ["scm"], indirect=True)
 def test_alt_pkg_names(repo):
-    # setup
-    pyproject = f"{repo.working_dir}/pyproject.toml"
-    pkgconf = read_toml(pyproject)
-    deps = pkgconf["project"]["dependencies"]
-    for i, dep in enumerate(deps):
-        if "sa-bar" in dep:
-            deps[i] = dep.replace("-", "_")
-    with open(pyproject, mode="w") as f:
-        tomlkit.dump(pkgconf, f)
+    pkg_dash2us(f"{repo.working_dir}/pyproject.toml")  # setup
     assert repo.index.diff(None)
     repo.index.add("pyproject.toml")
 

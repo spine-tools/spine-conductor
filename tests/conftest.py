@@ -1,8 +1,9 @@
 from pathlib import Path
 from git import Repo
 import pytest
+import tomlkit
 
-from orchestra.config import read_conf
+from orchestra.config import read_conf, read_toml
 
 # exclude tests inside example repos from discovery
 collect_ignore_glob = ["scm*"]
@@ -38,3 +39,13 @@ def repo(request):
     repo = clone_repo(request.param)
     yield repo
     repo.head.reset(commit="origin/master", working_tree=True)
+
+
+def pkg_dash2us(pyproject: str):
+    pkgconf = read_toml(pyproject)
+    deps = pkgconf["project"]["dependencies"]
+    for i, dep in enumerate(deps):
+        if "sa-bar" in dep:
+            deps[i] = dep.replace("-", "_")
+    with open(pyproject, mode="w") as f:
+        tomlkit.dump(pkgconf, f)
