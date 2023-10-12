@@ -47,7 +47,7 @@ def push_tags(repo: Repo, tag: str):
             console.print(err.summary)
 
 
-def dispatch_workflow(pkgtags_json: Path):
+def dispatch_workflow(pkgtags_json: Path, **kwargs):
     """Dispatch workflow to build and publish packages
 
     Parameters
@@ -55,6 +55,9 @@ def dispatch_workflow(pkgtags_json: Path):
     pkgtags_json : Path
         Path to the JSON file containing the package tags
     """
+    if _ := kwargs.pop("shell", None):
+        console.print("disallow shell=True, as it suppresses output")
+
     ghrepo = CONF["workflow"]["repo"]
     workflow = CONF["workflow"]["file"]
     CMD = CMD_FMT.format(repo=ghrepo, workflow=workflow)
@@ -64,6 +67,7 @@ def dispatch_workflow(pkgtags_json: Path):
             input=pkgtags_json.read_bytes(),
             check=True,
             capture_output=True,
+            **kwargs,
         )
     except subprocess.CalledProcessError as exc:
         return exc

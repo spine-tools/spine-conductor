@@ -1,5 +1,6 @@
 from io import StringIO
 from pathlib import Path
+import sys
 
 from git import GitCommandError, Remote
 import pytest
@@ -46,17 +47,18 @@ def test_push_tags_err(dup_repos, capsys):
     Path(f"{src.working_dir}.bak").rename(src.working_dir)
 
 
-@pytest.mark.parametrize(
-    "cmd, fname",
-    [("echo {repo} {workflow}", "empty"), ("grep packagename_regex", "scm.toml")],
-)
-def test_dispatch_workflow(cmd, fname, monkeypatch):
+@pytest.mark.parametrize("cmd", ["echo {repo} {workflow}", "grep packagename_regex"])
+def test_dispatch_workflow(cmd, monkeypatch):
+    """NOTE: echo to test config substitution, grep to test PIPE"""
+
+    if sys.platform in ("win32",):
+        pytest.skip(reason="FIXME: can't test PIPE on Windows")
+
     monkeypatch.setattr("orchestra.publish.CMD_FMT", cmd)
-    infile = Path(__file__).parent / fname
-    infile.touch()
-    res = dispatch_workflow(infile).stdout.decode("utf8")
-    if fname == "empty":
-        assert all(token in res for token in CONF["workflow"].values())
+    res = dispatch_workflow(Path(__file__).parent / "scm.toml")
+    out = res.stdout.decode("utf8")
+    if "echo" in cmd:
+        assert all(token in out for token in CONF["workflow"].values())
     else:
         *_, token = cmd.split()
-        assert token in res
+        assert token in out
