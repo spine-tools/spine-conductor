@@ -4,9 +4,11 @@ on:
   push:
     paths-ignore:
       - "doc/**"
+      - "*.md"
   pull_request:
     paths-ignore:
       - "doc/**"
+      - "*.md"
 
 jobs:
   format:
