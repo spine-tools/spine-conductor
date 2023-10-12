@@ -29,7 +29,7 @@ def configure():
 
 def clone_repo(name: str):
     path = Path(__file__).parent / name
-    if Path(path).exists():
+    if path.exists():
         return Repo(path)
     return Repo.clone_from(example_repos[name], path)
 

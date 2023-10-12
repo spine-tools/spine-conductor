@@ -205,14 +205,16 @@ def check_current_branch(repo_paths: dict[str, str], branches: dict[str, str]):
 def prompt_add(repo: Repo) -> int:
     """Prompt the user to select files to add to the index."""
     status = repo.git.status("-sb").splitlines()
-    status_ = "\n".join(
-        line
-        if line.startswith("##")
-        else f"[green]{line[0]}[/green][red]{line[1]}[/red]{line[2:]} ({idx})"
-        for idx, line in enumerate(status)
+    console.print(
+        f"[bold]Repository: {repo.working_dir}",
+        *(
+            line
+            if line.startswith("##")
+            else f" [{idx}][green]{line[0]}[/green][red]{line[1]}[/red]{line[2:]}"
+            for idx, line in enumerate(status)
+        ),
+        sep="\n",
     )
-    console.print(f"[bold]Repository: {repo.working_dir}")
-    console.print(status_)
     response = Prompt.ask("Select the files to add (comma/space separated list)")
     added = 0
     if response == "":
