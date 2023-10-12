@@ -16,3 +16,7 @@ sa-baz = "tests/scm-base"
 # sa-foo = "master"
 # sa-bar = "master"
 # sa-baz = "master"
+
+[tool.conductor.workflow]
+repo = "suvayu/scm"
+file = "test-n-publish.yml"  # file/name/id

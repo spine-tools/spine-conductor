@@ -7,6 +7,7 @@ from rich.console import Console
 import typer
 
 from .config import read_conf
+from .publish import publish_tags_whls
 from .release import VersionPart, make_release
 from .runner import run_xtest
 
@@ -53,6 +54,19 @@ def release(
     """Tag releases for all packages."""
     conf = read_conf(f"{config}")
     make_release(conf, bump_version, output, only)
+
+
+@cli.command()
+def publish(
+    ctx: typer.Context,
+    pkgtags: Annotated[Path, typer.Option(help="JSON file containing package tags")],
+    config: Annotated[Path, typer.Option("--conf", "-c", callback=path_exists)] = Path(
+        "pyproject.toml"
+    ),
+):
+    """Push Git tags to GitHub and publish packages to PyPI"""
+    conf = read_conf(f"{config}")
+    publish_tags_whls(conf, pkgtags)
 
 
 _xtest_doc_ref = (

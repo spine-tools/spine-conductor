@@ -1,7 +1,7 @@
 from pathlib import Path
+import shutil
 from git import Repo
 import pytest
-import tomlkit
 
 from orchestra.config import read_conf, read_toml, write_toml
 
@@ -32,6 +32,23 @@ def clone_repo(name: str):
     if path.exists():
         return Repo(path)
     return Repo.clone_from(example_repos[name], path)
+
+
+@pytest.fixture
+def dup_repos(request):
+    name = request.param
+    repo = clone_repo(name)
+
+    def _clone(_repo: Repo, name: str):
+        path = Path(__file__).parent / name
+        return Repo(path) if path.exists() else Repo.clone_from(_repo.working_dir, path)
+
+    repo1 = _clone(repo, f"{name}1")
+    repo2 = _clone(repo1, f"{name}2")
+    repo2.create_remote("upstream", repo.working_dir)
+    yield repo, repo1, repo2
+    shutil.rmtree(repo1.working_dir)
+    shutil.rmtree(repo2.working_dir)
 
 
 @pytest.fixture
