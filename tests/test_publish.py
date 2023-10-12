@@ -47,16 +47,15 @@ def test_push_tags_err(dup_repos, capsys):
 
 
 @pytest.mark.parametrize(
-    "cmd, infile",
-    [
-        ("echo {repo} {workflow}", "/dev/null"),
-        ("grep packagename_regex", Path(__file__).parent / "scm.toml"),
-    ],
+    "cmd, fname",
+    [("echo {repo} {workflow}", "empty"), ("grep packagename_regex", "scm.toml")],
 )
-def test_dispatch_workflow(cmd, infile, monkeypatch):
+def test_dispatch_workflow(cmd, fname, monkeypatch):
     monkeypatch.setattr("orchestra.publish.CMD_FMT", cmd)
-    res = dispatch_workflow(Path(infile)).stdout.decode("utf8")
-    if infile == "/dev/null":
+    infile = Path(__file__).parent / fname
+    infile.touch()
+    res = dispatch_workflow(infile).stdout.decode("utf8")
+    if fname == "empty":
         assert all(token in res for token in CONF["workflow"].values())
     else:
         *_, token = cmd.split()
