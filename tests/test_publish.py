@@ -52,7 +52,9 @@ def test_dispatch_workflow(cmd, monkeypatch):
     """NOTE: echo to test config substitution, grep to test PIPE"""
 
     if sys.platform in ("win32",):
-        pytest.skip(reason="FIXME: can't test PIPE on Windows")
+        # pytest.skip(reason="FIXME: can't test PIPE on Windows")
+        cmd = f"powershell -Command {cmd!r}"
+        cmd = cmd.replace("grep", "Select-String -Pattern")
 
     monkeypatch.setattr("orchestra.publish.CMD_FMT", cmd)
     res = dispatch_workflow(Path(__file__).parent / "scm.toml")
@@ -61,4 +63,5 @@ def test_dispatch_workflow(cmd, monkeypatch):
         assert all(token in out for token in CONF["workflow"].values())
     else:
         *_, token = cmd.split()
-        assert token in out
+        # the .strip is required on windows as we call powershell explicitly
+        assert token.strip("'\"") in out
