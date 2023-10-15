@@ -1,5 +1,7 @@
 from pathlib import Path
 import shutil
+import stat
+
 from git import Repo
 import pytest
 
@@ -34,21 +36,33 @@ def clone_repo(name: str):
     return Repo.clone_from(example_repos[name], path)
 
 
+def rm_ro(_fn, path, exc_info):
+    p = Path(path)
+    # only handle RO files, dir tree traversal handled by rmtree
+    if isinstance(exc_info[1], PermissionError):
+        # exc_info <= (exc_t, exc, tb)
+        p.chmod(stat.S_IWRITE)
+        p.unlink()
+
+
 @pytest.fixture
-def dup_repos(request):
+def dup_repos(tmp_path, request):
     name = request.param
     repo = clone_repo(name)
 
-    def _clone(_repo: Repo, name: str):
-        path = Path(__file__).parent / name
-        return Repo(path) if path.exists() else Repo.clone_from(_repo.working_dir, path)
+    def _clone(_repo: Repo, path: Path):
+        if path.exists():
+            return Repo(path)
+        else:
+            rclone = _repo.clone(f"{path}")
+            return rclone
 
-    repo1 = _clone(repo, f"{name}1")
-    repo2 = _clone(repo1, f"{name}2")
+    repo1 = _clone(repo, tmp_path / f"{name}1")
+    repo2 = _clone(repo1, tmp_path / f"{name}2")
     repo2.create_remote("upstream", repo.working_dir)
     yield repo, repo1, repo2
-    shutil.rmtree(repo1.working_dir)
-    shutil.rmtree(repo2.working_dir)
+    shutil.rmtree(repo1.working_dir, onerror=rm_ro)
+    shutil.rmtree(repo2.working_dir, onerror=rm_ro)
 
 
 @pytest.fixture

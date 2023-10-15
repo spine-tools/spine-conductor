@@ -4,8 +4,8 @@ import sys
 
 from git import GitCommandError, Remote
 import pytest
-from orchestra.config import CONF
 
+from orchestra.config import CONF
 from orchestra.publish import dispatch_workflow, push_tags
 
 
