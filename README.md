@@ -43,16 +43,6 @@ $ source venv/Scripts/activate # on git-bash
 $ .\venv\Scripts\activate.ps1 # on powershell
 ```
 
-## Dependencies
-- The `conduct release` command uses Git behind the scenes.  So will
-  need to have the `git` available in the same shell.
-- To use the `conduct publish` command, you besides Git, you also need
-  [`GitHub CLI`](https://github.com/cli/cli) (`gh`) installed and configured.
-  Please see the upstream docs for details.
-- If you do not want to use `gh`, you will have to push the tags to
-  GitHub manually, and trigger the publish workflow from GitHub (see
-  below).
-
 ### Updating
 Go to the repo on the terminal, then:
 
@@ -62,6 +52,16 @@ git pull
 source venv/bin/activate
 pip install -e .
 ```
+
+## Dependencies
+- The `conduct release` command uses Git behind the scenes.  So will
+  need to have the `git` available in the same shell.
+- To use the `conduct publish` command, you besides Git, you also need
+  [`GitHub CLI`](https://github.com/cli/cli) (`gh`) installed and configured.
+  Please see the upstream docs for details.
+- If you do not want to use `gh`, you will have to push the tags to
+  GitHub manually, and trigger the publish workflow from GitHub (see
+  below).
 
 # Usage
 ## Create the release tags
