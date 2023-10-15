@@ -131,7 +131,9 @@ Alternatively, you could do this step manually as follows:
 
 # Configuration
 
-The release tagging script is configured in TOML format as shown below:
+All commands are configured using a TOML file.  For `spine-tools` you
+can use the example shown below:
+
 ```toml
 [tool.conductor]
 packagename_regex = "spine(toolbox|(db){0,1}[_-][a-z]+)"  # package name on PyPI
@@ -154,6 +156,10 @@ spinedb_api  = "venv/src/spinedb-api"
 # spine_items  = "master"
 # spine_engine = "master"
 # spinedb_api  = "master"
+
+[tool.conductor.workflow]
+repo = "spine-tools/spine-conductor"  # gh-org/repo hosting the workflow
+file = "test-n-publish.yml"           # workflow file-name/name/id
 ```
 
 It can be included in `pyproject.toml`, or kept in a separate config
