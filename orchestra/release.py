@@ -250,9 +250,13 @@ def invoke_editor(repo: Repo, tag: str) -> str:
         tmp_file.write(msg)
         tmp_file.flush()
 
-        # Open the temporary file in the user's default editor; use
-        # shlex.split() to support EDITOR command with arguments
-        ret = subprocess.run([*shlex.split(EDITOR), tmp_file.name])
+        # Open the temporary file in the user's default editor.
+        if sys.platform == "win32":
+            args = [*EDITOR.split(" "), tmp_file.name]
+        else:
+            # On *NIX platforms, we an use shlex.split() to support EDITOR command with arguments.
+            args = [*shlex.split(EDITOR), tmp_file.name]
+        ret = subprocess.run(args)
         if ret.returncode != 0:
             raise RuntimeError("cancelled by user")
 
