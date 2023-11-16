@@ -106,25 +106,16 @@ jobs:
         Remove-Item spine-items\spine_items -Recurse -Force -ErrorAction Ignore
         Remove-Item spine-engine\spine_engine -Recurse -Force -ErrorAction Ignore
         Remove-Item Spine-Database-API\spinedb_api -Recurse -Force -ErrorAction Ignore
-    - name: Test wheels on *NIX
-      if: runner.os != 'Windows'
-      # FIXME: how to run execution tests for Spine-Toolbox
+    - name: Test wheels
       env:
         QT_QPA_PLATFORM: offscreen
       run: |
-        # FIXME: The cd stuff below is a workaround for bug in spinetoolbox tests
-        cd ${{ matrix.pkg }}
-        python -m unittest discover --verbose
-        cd ..
-        # FIXME: Use the line below once spine-tools/Spine-Toolbox#2274 is fixed
-        #python -m unittest discover -s ${{ matrix.pkg }} --verbose
-    - name: Test wheels on Windows
-      if: runner.os == 'Windows'
-      # FIXME: how to run execution tests for Spine-Toolbox
+        python -m unittest discover -s ${{ matrix.pkg }} --verbose
+    - name: Execution tests
+      if: matrix.pkg == 'Spine-Toolbox'
       run: |
-        cd ${{ matrix.pkg }}
-        python -m unittest discover --verbose
-        cd ..
+        python -m unittest discover -s ${{ matrix.pkg }} --pattern execution_test.py --verbose
+
   publish:
     # isolate from test, to prevent partial uploads
     needs: test
