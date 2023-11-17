@@ -58,6 +58,7 @@ jobs:
       matrix:
         pkg: ['Spine-Toolbox', 'spine-items', 'spine-engine', 'Spine-Database-API']
         os: [ubuntu-latest, windows-latest]
+        python: ["3.8", "3.9", "3.10", "3.11"]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -73,10 +74,10 @@ jobs:
         repository: 'spine-tools/${{ matrix.pkg }}'
         path: ${{ matrix.pkg }}
         ref: ${{ inputs[matrix.pkg] }}
-    - name: Set up Python
+    - name: Set up Python ${{ matrix.python }}
       uses: actions/setup-python@v4
       with:
-        python-version: '3.8'
+        python-version: ${{ matrix.python }}
     - name: Install pytest and built wheels on *NIX
       if: runner.os != 'Windows'
       run: |
