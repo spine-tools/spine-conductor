@@ -5,10 +5,12 @@ on:
     paths-ignore:
       - "doc/**"
       - "*.md"
+      - ".github/workflows/test-n-publish.yml"
   pull_request:
     paths-ignore:
       - "doc/**"
       - "*.md"
+      - ".github/workflows/test-n-publish.yml"
 
 jobs:
   format:
