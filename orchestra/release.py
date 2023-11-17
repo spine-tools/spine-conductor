@@ -27,7 +27,7 @@ def find_editor():
     if editor := conf.get("core", "editor", fallback=None):
         return editor
 
-    def which():
+    def which() -> str:
         editors: tuple[str, ...] = ("nano", "vim", "nvim", "emacs")
         if sys.platform in ("win32",):
             editors = (*editors, "notepad++", "notepad")
@@ -35,7 +35,7 @@ def find_editor():
             editors = (*editors, "vi")
         for editor in map(shutil.which, editors):
             if editor:
-                return editor
+                return str(editor)
         raise RuntimeError("couldn't find an editor")
 
     return os.environ.get("EDITOR", which())
