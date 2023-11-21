@@ -5,20 +5,20 @@ on:
     inputs:
       Spine-Toolbox:
         description: Git tag to use for 'Spine-Toolbox'
-        required: true
         type: string
+        default: 'skip'
       spine-items:
         description: Git tag to use for 'spine-items'
-        required: true
         type: string
+        default: 'skip'
       spine-engine:
         description: Git tag to use for 'spine-engine'
-        required: true
         type: string
+        default: 'skip'
       Spine-Database-API:
         description: Git tag to use for 'Spine-Database-API'
-        required: true
         type: string
+        default: 'skip'
 
 jobs:
   build:
@@ -26,6 +26,7 @@ jobs:
       matrix:
         pkg: ['Spine-Database-API', 'spine-engine', 'spine-items', 'Spine-Toolbox']
 
+    if: ${{ inputs[matrix.pkg] }} != 'skip'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout ${{ matrix.pkg }}
@@ -64,6 +65,7 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         python: ["3.8", "3.9", "3.10", "3.11"]
       fail-fast: false
+    if: ${{ inputs[matrix.pkg] }} != 'skip'
     runs-on: ${{ matrix.os }}
     steps:
     - name: Make dist directory
@@ -124,6 +126,7 @@ jobs:
   publish:
     # isolate from test, to prevent partial uploads
     needs: test
+    if: ${{ inputs[matrix.pkg] }} != 'skip'
     runs-on: ubuntu-latest
     strategy:
       matrix:
