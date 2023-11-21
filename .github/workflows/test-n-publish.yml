@@ -74,6 +74,10 @@ jobs:
         repository: 'spine-tools/${{ matrix.pkg }}'
         path: ${{ matrix.pkg }}
         ref: ${{ inputs[matrix.pkg] }}
+    - name: Ensure Git checkout is not dirty
+      run: GIT_DIR=${{ matrix.pkg }}/.git git describe --tags --dirty | grep -vE '[-]dirty$' -q
+    - name: Ensure Git checkout does not have additional commits
+      run: GIT_DIR=${{ matrix.pkg }}/.git git describe --tags | grep -vE '[-]g[a-z0-9]{8}$' -q
     - name: Set up Python ${{ matrix.python }}
       uses: actions/setup-python@v4
       with:
