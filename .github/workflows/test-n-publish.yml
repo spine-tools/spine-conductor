@@ -24,7 +24,7 @@ jobs:
   build:
     strategy:
       matrix:
-        pkg: ['Spine-Toolbox', 'spine-items', 'spine-engine', 'Spine-Database-API']
+        pkg: ['Spine-Database-API', 'spine-engine', 'spine-items', 'Spine-Toolbox']
 
     runs-on: ubuntu-latest
     steps:
@@ -60,7 +60,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        pkg: ['Spine-Toolbox', 'spine-items', 'spine-engine', 'Spine-Database-API']
+        pkg: ['Spine-Database-API', 'spine-engine', 'spine-items', 'Spine-Toolbox']
         os: [ubuntu-latest, windows-latest]
         python: ["3.8", "3.9", "3.10", "3.11"]
       fail-fast: false
@@ -127,7 +127,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        pkg: ['Spine-Toolbox', 'spine-items', 'spine-engine', 'Spine-Database-API']
+        pkg: ['Spine-Database-API', 'spine-engine', 'spine-items', 'Spine-Toolbox']
     permissions:
       id-token: write
     steps:
