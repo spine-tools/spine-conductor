@@ -1,0 +1,34 @@
+name: Reusable workflow to publish Spine package wheels
+
+on:
+  workflow_call:
+    inputs:
+      pkg:
+        description: Package name
+        type: string
+        required: true
+      ver:
+        description: Release tag
+        type: string
+        required: true
+
+jobs:
+  publish-whl:
+    if: ${{ inputs.ver }} != 'skip'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+    - name: Make dist directory
+      run: mkdir -p dist
+    - name: Download all wheels
+      uses: actions/download-artifact@v3
+      with:
+        path: dist
+    - name: Publish to PyPI using trusted publishing
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        # repository-url: https://test.pypi.org/legacy/
+        packages-dir: dist/${{ inputs.pkg }}
+        # skip-existing: true
+        # verify-metadata: false

@@ -26,7 +26,6 @@ jobs:
       matrix:
         pkg: ['Spine-Database-API', 'spine-engine', 'spine-items', 'Spine-Toolbox']
 
-    if: ${{ inputs[matrix.pkg] }} != 'skip'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout ${{ matrix.pkg }}
@@ -48,8 +47,16 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install build
     - name: Build
+      if: ${{ inputs[matrix.pkg] }} != 'skip'
       run: |
         python -m build ${{ matrix.pkg }}
+    - name: Download wheels for packages excluded from build
+      if: ${{ inputs[matrix.pkg] }} == 'skip'
+      run: |
+        mkdir -p ${{ matrix.pkg }}/dist/
+        sed -nEe 's/name[ ]*=[ ]*"?([a-z0-9_-]+)"?/\1/p' ${{ matrix.pkg }}/pyproject.toml > pkgname
+        python -m pip download --no-deps --python-version 3.8 \
+          --dest ${{ matrix.pkg }}/dist/ $(cat pkgname)
     - name: Save ${{ matrix.pkg }} wheel
       uses: actions/upload-artifact@v3
       with:
@@ -65,7 +72,6 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         python: ["3.8", "3.9", "3.10", "3.11"]
       fail-fast: false
-    if: ${{ inputs[matrix.pkg] }} != 'skip'
     runs-on: ${{ matrix.os }}
     steps:
     - name: Make dist directory
@@ -126,24 +132,11 @@ jobs:
   publish:
     # isolate from test, to prevent partial uploads
     needs: test
-    if: ${{ inputs[matrix.pkg] }} != 'skip'
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         pkg: ['Spine-Database-API', 'spine-engine', 'spine-items', 'Spine-Toolbox']
-    permissions:
-      id-token: write
-    steps:
-    - name: Make dist directory
-      run: mkdir -p dist
-    - name: Download all wheels
-      uses: actions/download-artifact@v3
-      with:
-        path: dist
-    - name: Publish to PyPI using trusted publishing
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        # repository-url: https://test.pypi.org/legacy/
-        packages-dir: dist/${{ matrix.pkg }}
-        # skip-existing: true
-        # verify-metadata: false
+
+    uses: ./.github/workflows/publish-wheel.yml
+    with:
+      pkg: ${{ matrix.pkg }}
+      ver: ${{ inputs[matrix.pkg] }}
