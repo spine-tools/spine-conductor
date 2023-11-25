@@ -3,14 +3,14 @@ name: Unit tests
 on:
   push:
     paths-ignore:
-      - "doc/**"
+      - "docs/**"
       - "*.md"
-      - ".github/workflows/test-n-publish.yml"
+      - ".github/workflows/*publish*.yml"
   pull_request:
     paths-ignore:
-      - "doc/**"
+      - "docs/**"
       - "*.md"
-      - ".github/workflows/test-n-publish.yml"
+      - ".github/workflows/*publish*.yml"
 
 jobs:
   format:
