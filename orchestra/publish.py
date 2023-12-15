@@ -71,6 +71,8 @@ def dispatch_workflow(pkgtags_json: Path, **kwargs):
         )
     except subprocess.CalledProcessError as exc:
         return exc
+    except FileNotFoundError as exc:
+        return exc
     return res
 
 
@@ -95,5 +97,8 @@ def publish_tags_whls(config: dict, pkgtags: Path):
     res = dispatch_workflow(pkgtags)
     if isinstance(res, subprocess.CalledProcessError):
         console.print(res.stderr.decode())
+        return
+    elif isinstance(res, FileNotFoundError):
+        console.print(f"{res.filename!r} missing, did you install GitHub CLI?")
         return
     console.print(res.stdout.decode())
