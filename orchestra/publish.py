@@ -69,10 +69,15 @@ def dispatch_workflow(pkgtags_json: Path, **kwargs):
             capture_output=True,
             **kwargs,
         )
-    except subprocess.CalledProcessError as exc:
-        return exc
     except FileNotFoundError as exc:
+        console.print(f"{exc.filename!r} missing, did you install GitHub CLI?")
         return exc
+    except subprocess.CalledProcessError as exc:
+        console.print("failed to trigger workflow with GitHub CLI:")
+        console.print(exc.stderr.decode())
+        return exc
+    else:
+        console.print(res.stdout.decode())
     return res
 
 
@@ -94,11 +99,4 @@ def publish_tags_whls(config: dict, pkgtags: Path):
     for _, repo_path in config["repos"].items():
         repo = Repo(repo_path)
         push_tags(repo, tags[remote_name(repo)])
-    res = dispatch_workflow(pkgtags)
-    if isinstance(res, subprocess.CalledProcessError):
-        console.print(res.stderr.decode())
-        return
-    elif isinstance(res, FileNotFoundError):
-        console.print(f"{res.filename!r} missing, did you install GitHub CLI?")
-        return
-    console.print(res.stdout.decode())
+    dispatch_workflow(pkgtags)
