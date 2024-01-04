@@ -32,7 +32,8 @@ def test_push_tags_bad_prompt(dup_repos, response, monkeypatch, capsys):
     name, _, _, dst = dup_repos
     monkeypatch.setattr("sys.stdin", StringIO(response))
 
-    with pytest.raises(SystemExit, match=str(ErrorCodes.USERINPUT_ERR)):
+    # FIXME: in Python 3.10 str(IntEnum.ENUM) returns "ENUM" instead of "ENUM.value"
+    with pytest.raises(SystemExit, match=str(int(ErrorCodes.USERINPUT_ERR))):
         push_tags(example_pkgs[name], dst, "dummy")
 
     captured = capsys.readouterr()
@@ -74,7 +75,8 @@ def test_push_tags_err(dup_repos, err, capsys):
         # create the same tag on both repos
         conflicting_tags(src, dst, "README.md", "test_tag")
 
-    with pytest.raises(SystemExit, match=str(err)):
+    # FIXME: in Python 3.10 str(IntEnum.ENUM) returns "ENUM" instead of "ENUM.value"
+    with pytest.raises(SystemExit, match=str(int(err))):
         push_tags(example_pkgs[name], dst, "test_tag")  # test_tag from fixture
 
     captured = capsys.readouterr()
