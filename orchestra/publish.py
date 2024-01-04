@@ -3,10 +3,12 @@ from pathlib import Path
 import shlex
 import subprocess
 
-from git import Repo
+from git import GitCommandError, Repo
+from git.remote import PushInfoList
 from rich.console import Console
 from rich.prompt import Prompt
 
+from orchestra import ErrorCodes
 from orchestra.config import CONF
 from orchestra.release import remote_name
 
@@ -15,7 +17,19 @@ CMD_FMT = "gh workflow run --json --repo {repo} {workflow}"
 console = Console()
 
 
-def push_tags(repo: Repo, tag: str):
+def git_error_handler(res: PushInfoList, err: ErrorCodes, msg: str):
+    try:
+        res.raise_if_error()
+    except GitCommandError as exc:
+        console.print(f"pushing {msg} failed!")
+        console.print(f"Git command: {exc.command!r} failed with {exc.status=}")
+        console.print(exc.stderr)
+        err.exit()
+    else:
+        console.print(f"pushed {msg}")
+
+
+def push_tags(pkg: str, repo: Repo, tag: str):
     if len(repo.remotes) > 1:
         console.print(
             *(
@@ -28,23 +42,21 @@ def push_tags(repo: Repo, tag: str):
             try:
                 remote = repo.remotes[int(response)]
             except ValueError:
-                console.print(f"invalid selection: {response}, selecting first")
-                remote = repo.remotes[0]
+                console.print(f"invalid selection: {response}, aborting!")
+                ErrorCodes.USERINPUT_ERR.exit()
+                return  # for pyright
         else:
-            console.print("empty response, selecting first")
-            remote = repo.remotes[0]
+            console.print("empty response, aborting!")
+            ErrorCodes.USERINPUT_ERR.exit()
+            return  # for pyright
     else:
         remote = repo.remotes[0]
-    res = remote.push(tag)
-    # FIXME: not sure if this is the best way to check for errors
-    if len(res) == 0:
-        console.print(f"pushing {tag!r} failed")
-        res.raise_if_error()
-    errs = [err for err in res if err.flags & err.ERROR]
-    if len(errs) > 0:
-        console.print(f"pushing {tag!r} failed partially")
-        for err in errs:
-            console.print(err.summary)
+    ref = CONF["branches"][pkg]
+    res = remote.push(refspec=ref)
+    git_error_handler(res, ErrorCodes.REMOTE_ERR, f"{ref=} -> {remote.name!r}")
+
+    res = remote.push(tags=True)
+    git_error_handler(res, ErrorCodes.DUPTAG_ERR, f"{tag=} -> {remote.name!r}")
 
 
 def dispatch_workflow(pkgtags_json: Path, **kwargs):
@@ -96,7 +108,7 @@ def publish_tags_whls(config: dict, pkgtags: Path):
         Path to the JSON file containing the package tags
     """
     tags = json.loads(pkgtags.read_text())
-    for _, repo_path in config["repos"].items():
+    for pkg, repo_path in config["repos"].items():
         repo = Repo(repo_path)
-        push_tags(repo, tags[remote_name(repo)])
+        push_tags(pkg, repo, tags[remote_name(repo)])
     dispatch_workflow(pkgtags)

@@ -47,23 +47,63 @@ def rm_ro(_fn, path, exc_info):
 
 @pytest.fixture
 def dup_repos(tmp_path, request):
+    """Creates a pair of repos with a remote pointing to the other
+
+    The original remote is named 'upstream' in clone2, and 'origin' in
+    the clone1.  The repos are cloned into tmp_path, and deleted after
+    the test.  The fixture returns a tuple of (name, original, clone1,
+    clone2).
+
+        tests/<repo> -> tmp_path/<clone1> -> tmp_path/<clone2>
+
+        tmp_path/<clone1>:
+          tests/<repo> (origin)
+
+        tmp_path/<clone2>:
+          tmp_path/<clone1> (origin)
+          tests/<repo> (upstream)
+
+    Parameters
+    ----------
+    tmp_path : Path
+        pytest fixture
+    request : pytest fixture
+        pytest request object
+
+    Yields
+    ------
+    tuple
+        (name, original, clone1, clone2)
+
+    """
     name = request.param
     repo = clone_repo(name)
 
-    def _clone(_repo: Repo, path: Path):
+    def _clone(_repo: Repo, path: Path, **kwargs):
         if path.exists():
             return Repo(path)
         else:
-            rclone = _repo.clone(f"{path}")
+            rclone = _repo.clone(f"{path}", **kwargs)
             return rclone
 
-    repo1 = _clone(repo, tmp_path / f"{name}1")
-    repo2 = _clone(repo1, tmp_path / f"{name}2")
+    repo1 = _clone(repo, tmp_path / f"{name}.git", bare=True)
+    repo2 = _clone(repo1, tmp_path / f"{name}")
     repo2.create_remote("upstream", repo.working_dir)
-    yield repo, repo1, repo2
+    yield name, repo, repo1, repo2
     # FIXME: from Python 3.12 onerror is deprecated in favour or onexc
     shutil.rmtree(repo1.working_dir, onerror=rm_ro)
     shutil.rmtree(repo2.working_dir, onerror=rm_ro)
+
+
+def edit(fname: str, payload: str, append: bool = True):
+    mode = "a" if append else "w"
+    with open(fname, mode=mode) as f:
+        f.write(payload)
+
+
+def commit(repo: Repo, fnames: list[str], msg: str):
+    repo.index.add(fnames)
+    repo.index.commit(msg)
 
 
 @pytest.fixture

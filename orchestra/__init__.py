@@ -6,6 +6,9 @@ class ErrorCodes(IntEnum):
     CONFIG_ERR = 1
     BRANCH_ERR = 2
     COMMIT_ERR = 3
+    REMOTE_ERR = 4
+    DUPTAG_ERR = 5
+    USERINPUT_ERR = 6
 
     def exit(self, msg: str = ""):
         if msg:
