@@ -1,10 +1,16 @@
 from enum import IntEnum
+import sys
 
 
 class ErrorCodes(IntEnum):
     CONFIG_ERR = 1
     BRANCH_ERR = 2
     COMMIT_ERR = 3
+
+    def exit(self, msg: str = ""):
+        if msg:
+            print(f"{self.name}: {msg}", file=sys.stderr)
+        sys.exit(int(self))
 
 
 def format_exc(exc: Exception, notes: str = "") -> str:

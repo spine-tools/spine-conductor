@@ -45,19 +45,19 @@ def read_conf(path: str) -> dict:
         config = config["tool"]["conductor"]
     else:
         console.print(f"[b]Missing section 'tool.conductor' in {path!r}.")
-        sys.exit(int(ErrorCodes.CONFIG_ERR))
+        ErrorCodes.CONFIG_ERR.exit()
 
     # check mandatory sections
     msg = f"[b]Missing config 'tool.conductor.{{}}' in {path!r}."
     if "packagename_regex" not in config:
         console.print(msg.format("packagename_regex"))
-        sys.exit(int(ErrorCodes.CONFIG_ERR))
+        ErrorCodes.CONFIG_ERR.exit()
     if "repos" not in config:
         console.print(msg.format("repos"))
-        sys.exit(int(ErrorCodes.CONFIG_ERR))
+        ErrorCodes.CONFIG_ERR.exit()
     if "dependency_graph" not in config:
         console.print(msg.format("dependency_graph"))
-        sys.exit(int(ErrorCodes.CONFIG_ERR))
+        ErrorCodes.CONFIG_ERR.exit()
 
     CONF.update(config)
     try:
@@ -68,7 +68,7 @@ def read_conf(path: str) -> dict:
         pos = err.pos if err.pos else 0
         annotation = " " * (len(prelude) + 3 + pos) + "[b][cyan]^"
         console.print(format_exc(err, f"{prelude}: {regex!r}\n{annotation}"))
-        sys.exit(int(ErrorCodes.CONFIG_ERR))
+        ErrorCodes.CONFIG_ERR.exit()
 
     # check package name errors in all relevant sections
     error_count = 0
@@ -77,7 +77,7 @@ def read_conf(path: str) -> dict:
             console.print(msg)
             error_count += 1
     if error_count > 0:
-        sys.exit(int(ErrorCodes.CONFIG_ERR))
+        ErrorCodes.CONFIG_ERR.exit()
 
     branches_default = {pkg: CONF["default_branch"] for pkg in CONF["repos"]}
     branches = CONF["branches"] if "branches" in CONF else {}

@@ -295,7 +295,7 @@ def create_tags(
                     raise RuntimeError("empty commit message")
             except RuntimeError as err:
                 console.print(format_exc(err, "Aborting commit!"))
-                sys.exit(int(ErrorCodes.COMMIT_ERR))
+                ErrorCodes.COMMIT_ERR.exit()
             else:
                 repo.index.commit(msg)
 
@@ -319,7 +319,7 @@ def make_release(
         check_current_branch(config["repos"], branches)
     except RuntimeError as err:
         console.print(format_exc(err, "Aborting!"))
-        sys.exit(int(ErrorCodes.BRANCH_ERR))
+        ErrorCodes.BRANCH_ERR.exit()
 
     summary = create_tags(config["repos"], bump_version)
     json_str = json.dumps(summary, indent=4)
