@@ -1,6 +1,7 @@
 from pathlib import Path
 import shutil
 import stat
+import sys
 
 from git import Repo
 import pytest
@@ -91,8 +92,9 @@ def dup_repos(tmp_path, request):
     repo2.create_remote("upstream", repo.working_dir)
     yield name, repo, repo1, repo2
     # FIXME: from Python 3.12 onerror is deprecated in favour or onexc
-    shutil.rmtree(repo1.working_dir, onerror=rm_ro)
-    shutil.rmtree(repo2.working_dir, onerror=rm_ro)
+    if sys.platform != "win32":  # FIXME: inexplicable PermissionError
+        shutil.rmtree(repo1.working_dir, onerror=rm_ro)
+        shutil.rmtree(repo2.working_dir, onerror=rm_ro)
 
 
 def edit(fname: str, payload: str, append: bool = True):

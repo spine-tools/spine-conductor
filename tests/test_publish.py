@@ -62,9 +62,6 @@ def conflicting_tags(repo1, repo2, fname, tag):
     repo2.create_tag(tag)
 
 
-@pytest.mark.xfail(
-    sys.platform == "win32", reason="FIXME: inexplicable PermissionError"
-)
 @pytest.mark.parametrize("dup_repos", ["scm"], indirect=True)
 @pytest.mark.parametrize("err", [ErrorCodes.DUPTAG_ERR, ErrorCodes.REMOTE_ERR])
 def test_push_tags_err(dup_repos, err, capsys):
