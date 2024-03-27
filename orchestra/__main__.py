@@ -2,6 +2,7 @@ from pathlib import Path
 import sys
 from typing import Annotated
 
+from click.exceptions import BadArgumentUsage, BadParameter
 from packaging.requirements import InvalidRequirement
 from rich.console import Console
 import typer
@@ -22,7 +23,7 @@ def highligh_marks(text: str) -> str:
 
 def path_exists(path: Path) -> Path:
     if not path.exists():
-        raise typer.BadParameter(f"'{path}' does not exist.")
+        raise BadParameter(f"'{path}' does not exist.")
     return path
 
 
@@ -47,12 +48,20 @@ def release(
         list[str],
         typer.Option(help="Only tag the specified package (repeat for multiple)"),
     ] = [],
+    exclude: Annotated[
+        list[str],
+        typer.Option(help="Exclude the specified package (repeat for multiple)"),
+    ] = [],
     config: Annotated[Path, typer.Option("--conf", "-c", callback=path_exists)] = Path(
         "pyproject.toml"
     ),
 ):
     """Tag releases for all packages."""
     conf = read_conf(f"{config}")
+    if only and exclude:
+        raise BadArgumentUsage("`--only` and `--exclude` are mutually exclusive")
+    elif exclude:
+        only = [pkg for pkg in conf["repos"].keys() if pkg not in exclude]
     make_release(conf, bump_version, output, only)
 
 
