@@ -65,6 +65,9 @@ You can limit the new releases to a subset of packages by passing a
 list like this: `--only sa-foo --only sa-baz` (you have to repeat the
 `--only` option for each package).
 
+If you are only excluding a few packages, you may prefer the terser
+`--exclude sa-foo`; as before, repeat to exclude more packages.
+
 # How is circular dependency between packages handled?
 It is included in the config under the section `dependency_graph`.  It
 is equivalent to the following (version agnostic) dictionary:
