@@ -8,3 +8,11 @@ __pycache__
 
 build
 *.egg-info
+
+.*/
+out/
+
+*.gz
+*.tar
+*.zip
+*.whl
