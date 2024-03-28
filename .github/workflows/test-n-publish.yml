@@ -107,12 +107,12 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install pytest
-    - name: Install pytest and built wheels on *NIX
+    - name: Built wheels on *NIX
       if: ${{ inputs[matrix.pkg]  != 'skip' && runner.os != 'Windows' }}
       run: |
         ls dist
         python -m pip install dist/*/*.whl
-    - name: Install pytest and built wheels on Windows
+    - name: Built wheels on Windows
       if: ${{ inputs[matrix.pkg]  != 'skip' && runner.os == 'Windows' }}
       run: |
         Get-ChildItem ./dist/*.whl -Recurse | ForEach-Object {python -m pip install $_}
@@ -145,12 +145,35 @@ jobs:
         python -m unittest discover -s ${{ matrix.pkg }} --pattern execution_test.py --verbose
 
   publish:
-    # isolate from test, to prevent partial uploads
     needs: test
     strategy:
       matrix:
         pkg: ['Spine-Database-API', 'spine-engine', 'spine-items', 'Spine-Toolbox']
-    uses: ./.github/workflows/publish-wheel.yml
-    with:
-      pkg: ${{ matrix.pkg }}
-      ver: ${{ inputs[matrix.pkg] }}
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/${{ steps.package_name.outputs.name }}
+    permissions:
+      id-token: write
+    steps:
+    - name: Make dist directory
+      if: ${{ inputs[matrix.pkg]  != 'skip' }}
+      run: mkdir -p dist
+    - name: Download package wheel
+      if: ${{ inputs[matrix.pkg]  != 'skip' }}
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ matrix.pkg }}
+        path: dist
+    - id: package_name
+      if: ${{ inputs[matrix.pkg]  != 'skip' }}
+      run: |
+        echo name=$(ls dist | awk -F'[-]' '{print $1}') >> $GITHUB_OUTPUT
+    - name: Publish to PyPI using trusted publishing
+      if: ${{ inputs[matrix.pkg]  != 'skip' }}
+      uses: pypa/gh-action-pypi-publish@release/v1
+      # with:
+        # repository-url: https://test.pypi.org/legacy/
+        # packages-dir: dist/
+        # skip-existing: true
+        # verify-metadata: false
