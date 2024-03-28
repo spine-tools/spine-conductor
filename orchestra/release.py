@@ -208,9 +208,11 @@ def prompt_add(repo: Repo) -> int:
     console.print(
         f"[bold]Repository: {repo.working_dir}",
         *(
-            line
-            if line.startswith("##")
-            else f" [{idx}][green]{line[0]}[/green][red]{line[1]}[/red]{line[2:]}"
+            (
+                line
+                if line.startswith("##")
+                else f" [{idx}][green]{line[0]}[/green][red]{line[1]}[/red]{line[2:]}"
+            )
             for idx, line in enumerate(status)
         ),
         sep="\n",
