@@ -1,6 +1,8 @@
 from enum import IntEnum
 import sys
 
+from git import GitCommandError
+
 
 class ErrorCodes(IntEnum):
     CONFIG_ERR = 1
@@ -29,3 +31,7 @@ def format_exc(exc: Exception, notes: str = "") -> str:
     if trailer:
         err += f"\n\n[bold]{trailer}"
     return err
+
+
+def format_git_cmd_err(exc: GitCommandError) -> str:
+    return f"Git command: {exc.command!r} failed with {exc.status=}\n{exc.stderr}"

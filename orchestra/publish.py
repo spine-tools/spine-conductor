@@ -8,7 +8,7 @@ from git.remote import PushInfoList
 from rich.console import Console
 from rich.prompt import Prompt
 
-from orchestra import ErrorCodes
+from orchestra import ErrorCodes, format_git_cmd_err
 from orchestra.config import CONF
 from orchestra.release import remote_name
 
@@ -22,8 +22,7 @@ def git_error_handler(res: PushInfoList, err: ErrorCodes, msg: str):
         res.raise_if_error()
     except GitCommandError as exc:
         console.print(f"pushing {msg} failed!")
-        console.print(f"Git command: {exc.command!r} failed with {exc.status=}")
-        console.print(exc.stderr)
+        console.print(format_git_cmd_err(exc))
         err.exit()
     else:
         console.print(f"pushed {msg}")
