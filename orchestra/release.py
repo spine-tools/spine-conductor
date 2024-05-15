@@ -165,8 +165,16 @@ def update_pkg_deps(repo: Repo, next_versions: dict[str, str]):
     for i, dep in enumerate(dependencies):
         if dep_match := CONF["pkgname_re"].match(dep):
             pkg_ = dep_match.group()
-            next_ver = next_versions[pkg_]
-            dependencies[i] = f"{pkg_}>={next_ver}"
+            try:
+                next_ver = next_versions[pkg_]
+            except KeyError:
+                if pkg_ not in CONF["repos"]:
+                    # packages excluded by only/exclude
+                    continue
+                else:
+                    raise  # unexpected
+            else:
+                dependencies[i] = f"{pkg_}>={next_ver}"
     write_toml(project, pyproject_toml)
 
 
