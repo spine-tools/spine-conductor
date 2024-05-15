@@ -9,7 +9,7 @@ import subprocess
 import sys
 import textwrap
 
-from git import Repo
+from git import GitCommandError, Repo
 from git.config import GitConfigParser
 from packaging import version
 from rich.console import Console
@@ -17,7 +17,7 @@ from rich.prompt import Prompt
 from setuptools_scm import get_version
 from tomlkit.items import Array, Trivia
 
-from orchestra import ErrorCodes, format_exc
+from orchestra import ErrorCodes, format_exc, format_git_cmd_err
 from orchestra.config import CONF, read_toml, write_toml
 
 
@@ -50,6 +50,7 @@ commit_hdr = """
 
 empty_re = re.compile(r"\s+")
 comma_space_re = re.compile(r"[,\s]+")
+git_duptag_re = re.compile(r"tag '[0-9.]+' already exists")
 
 console = Console()
 
@@ -304,8 +305,19 @@ def create_tags(
         console.print(
             f"Creating tag: {next_version} @ [yellow]{repo.head.commit.hexsha[:7]}"
         )
-        repo.create_tag(next_version)
-        summary[remote_name(repo)] = next_version
+        try:
+            repo.create_tag(next_version)
+        except GitCommandError as exc:
+            if git_duptag_re.search(exc.stderr):
+                if is_circular(pkg):
+                    console.print(format_git_cmd_err(exc))
+                    ErrorCodes.DUPTAG_ERR.exit()
+                else:
+                    msg = f"{pkg}@{tag}: skipping duplicate tag, excluded from release"
+                    console.print(msg)
+                    continue
+        else:
+            summary[remote_name(repo)] = next_version
     return summary
 
 
