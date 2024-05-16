@@ -18,7 +18,7 @@ from setuptools_scm import get_version
 from tomlkit.items import Array, Trivia
 
 from orchestra import ErrorCodes, format_exc, format_git_cmd_err
-from orchestra.config import CONF, read_toml, write_toml
+from orchestra.config import read_toml, write_toml
 
 
 def find_editor():
@@ -79,7 +79,7 @@ def remote_name(repo: Repo | str) -> str:
     return Path(repo.remote().url).stem
 
 
-def is_circular(pkg: str) -> bool:
+def is_circular(dependency_graph: dict, pkg: str) -> bool:
     """Check if a package has a circular dependency."""
     visited = set()
     to_visit = [pkg]
@@ -88,7 +88,7 @@ def is_circular(pkg: str) -> bool:
         if pkg in visited:
             return True
         visited.add(pkg)
-        to_visit.extend(CONF["dependency_graph"][pkg])
+        to_visit.extend(dependency_graph[pkg])
     return False
 
 
@@ -156,7 +156,7 @@ class redict(dict):
         raise KeyError(key)
 
 
-def update_pkg_deps(repo: Repo, next_versions: dict[str, str]):
+def update_pkg_deps(CONF: dict, repo: Repo, next_versions: dict[str, str]):
     """Update the versions of the dependencies for a given package/project"""
     next_versions = redict(next_versions)
     pyproject_toml = f"{repo.working_dir}/pyproject.toml"
@@ -278,9 +278,10 @@ def invoke_editor(repo: Repo, tag: str) -> str:
 
 
 def create_tags(
-    repo_paths: dict[str, str], bump_version: VersionPart = VersionPart.minor
+    CONF: dict, bump_version: VersionPart = VersionPart.minor
 ) -> dict[str, str]:
     """Tag releases for all packages."""
+    repo_paths = CONF["repos"]
     _repos = [Repo(path) for path in repo_paths.values()]
     _tags = latest_tags(_repos)
     _next_versions = guess_next_versions(_repos, bump_version)
@@ -292,7 +293,7 @@ def create_tags(
         if tag == next_version:
             continue
 
-        update_pkg_deps(repo, next_versions)
+        update_pkg_deps(CONF, repo, next_versions)
         prompt_add(repo)
         modified = [i.a_path for i in repo.index.diff(None)]
         if "pyproject.toml" in modified:  # must add pyproject.toml
@@ -317,7 +318,7 @@ def create_tags(
             repo.create_tag(next_version)
         except GitCommandError as exc:
             if git_duptag_re.search(exc.stderr):
-                if is_circular(pkg):
+                if is_circular(CONF["dependency_graph"], pkg):
                     console.print(format_git_cmd_err(exc))
                     ErrorCodes.DUPTAG_ERR.exit()
                 else:
@@ -330,20 +331,20 @@ def create_tags(
 
 
 def make_release(
-    config: dict, bump_version: VersionPart, output: Path, only: list[str] = []
+    CONF: dict, bump_version: VersionPart, output: Path, only: list[str] = []
 ):
     """Make release tag for all packages, and print a summary."""
-    branches = config["branches"]
+    branches = CONF["branches"]
     if len(only) > 0:
-        config["repos"] = {pkg: config["repos"][pkg] for pkg in only}
+        CONF["repos"] = {pkg: CONF["repos"][pkg] for pkg in only}
         branches = {pkg: branches[pkg] for pkg in only}
     try:
-        check_current_branch(config["repos"], branches)
+        check_current_branch(CONF["repos"], branches)
     except RuntimeError as err:
         console.print(format_exc(err, "Aborting!"))
         ErrorCodes.BRANCH_ERR.exit()
 
-    summary = create_tags(config["repos"], bump_version)
+    summary = create_tags(CONF, bump_version)
     json_str = json.dumps(summary, indent=4)
     output.write_text(json_str)
     msg = "\n[underline]Package Tags summary[/underline] "
@@ -363,7 +364,7 @@ if __name__ == "__main__":
         output: Path = Path("pkgtags.json"),
         only: list[str] = [],
     ):
-        conf = read_conf(f"{config}")
-        make_release(conf, bump_version, output, only)
+        CONF = read_conf(f"{config}")
+        make_release(CONF, bump_version, output, only)
 
     typer.run(main)

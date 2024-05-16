@@ -8,7 +8,6 @@ from packaging.version import Version
 import pytest
 
 from orchestra import ErrorCodes
-from orchestra.config import CONF
 from orchestra.release import (
     VersionPart,
     bump_version,
@@ -46,8 +45,8 @@ def test_remote_name(name):
 @pytest.mark.parametrize(
     "pkg, expect", [("sa-foo", True), ("sa-bar", True), ("sa-baz", False)]
 )
-def test_is_circular(pkg, expect):
-    assert is_circular(pkg) == expect
+def test_is_circular(CONF, pkg, expect):
+    assert is_circular(CONF["dependency_graph"], pkg) == expect
 
 
 def test_latest_tags():
@@ -105,8 +104,8 @@ def test_prompt_add(repo, monkeypatch):
     [("scm", []), ("scm-dep", ["not-empty"]), ("scm-base", [])],
     indirect=["repo"],
 )
-def test_update_pkg_deps(repo, expect):
-    update_pkg_deps(repo, next_versions)
+def test_update_pkg_deps(CONF, repo, expect):
+    update_pkg_deps(CONF, repo, next_versions)
     changes = repo.index.diff(None)
     if expect:
         assert changes
@@ -115,19 +114,19 @@ def test_update_pkg_deps(repo, expect):
 
 
 @pytest.mark.parametrize("repo", ["scm"], indirect=True)
-def test_alt_pkg_names(repo):
+def test_alt_pkg_names(CONF, repo):
     pkg_dash2us(f"{repo.working_dir}/pyproject.toml")  # setup
     assert repo.index.diff(None)
     repo.index.add("pyproject.toml")
 
     # test
-    update_pkg_deps(repo, next_versions)  # no KeyError
+    update_pkg_deps(CONF, repo, next_versions)  # no KeyError
     assert repo.index.diff(None) == []  # no changes
 
 
 # only 'scm' has changes, so only 'scm-dep' deps will be updated
 @pytest.mark.parametrize("repo", ["scm-dep"], indirect=True)
-def test_preserve_line_endings(repo):
+def test_preserve_line_endings(CONF, repo):
     # setup
     pyproject = Path(f"{repo.working_dir}/pyproject.toml")
     txt = pyproject.read_text().replace("\n", "\r\n")
@@ -140,7 +139,7 @@ def test_preserve_line_endings(repo):
     repo.git.add("pyproject.toml")
 
     # test
-    update_pkg_deps(repo, next_versions)
+    update_pkg_deps(CONF, repo, next_versions)
     diff, *_ = repo.index.diff(None, create_patch=True)
     txt = diff.diff.decode("utf8")
     # 1 header + 2 x 3 line context + 2 line change (+/-)
@@ -165,7 +164,7 @@ def test_check_current_branch(name):
 
 
 @pytest.mark.parametrize("pkgname", ["sa-foo", "sa-bar", "sa-baz"])
-def test_make_release_ret_code(pkgname, capsys):
+def test_make_release_ret_code(CONF, pkgname, capsys):
     config = deepcopy(CONF)
     config["branches"].update({pkgname: "not-there"})
     with pytest.raises(SystemExit, match=f"{ErrorCodes.BRANCH_ERR}"):

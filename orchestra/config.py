@@ -1,3 +1,4 @@
+from copy import deepcopy
 import re
 from typing import Any
 
@@ -7,7 +8,7 @@ import tomlkit
 from orchestra import ErrorCodes, format_exc
 
 # fmt: off
-CONF: dict[str, Any] = {
+_CONF: dict[str, Any] = {
     "packagename_regex": "",    # in file
     "pkgname_re": None,         # in memory, re.Pattern[str], constructed from above
     "repos": {},                # from file
@@ -30,7 +31,7 @@ def write_toml(data: dict, path: str):
         tomlkit.dump(data, toml_file)
 
 
-def check_pkgnames(key: str) -> str:
+def check_pkgnames(CONF: dict[str, Any], key: str) -> str:
     """Check if all package names in a section are valid."""
     msg = f"[b]Unknown package names in 'tool.conductor.{key}': {{}}"
     unk = [pkg for pkg in CONF[key] if not CONF["pkgname_re"].match(pkg)]
@@ -38,7 +39,7 @@ def check_pkgnames(key: str) -> str:
 
 
 def read_conf(path: str) -> dict:
-    global CONF
+    CONF = deepcopy(_CONF)
     config = read_toml(path)
     if "tool" in config and "conductor" in config["tool"]:
         config = config["tool"]["conductor"]
@@ -72,7 +73,7 @@ def read_conf(path: str) -> dict:
     # check package name errors in all relevant sections
     error_count = 0
     for key in [("repos"), ("branches"), ("dependency_graph")]:
-        if msg := check_pkgnames(key):
+        if msg := check_pkgnames(CONF, key):
             console.print(msg)
             error_count += 1
     if error_count > 0:

@@ -25,9 +25,9 @@ next_versions = {
 }
 
 
-@pytest.fixture(scope="session", autouse=True)
-def configure():
-    read_conf(f"{Path(__file__).parent / 'scm.toml'}")
+@pytest.fixture
+def CONF():
+    return read_conf(f"{Path(__file__).parent / 'scm.toml'}")
 
 
 def clone_repo(name: str):

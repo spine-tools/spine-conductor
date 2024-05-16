@@ -9,7 +9,6 @@ from rich.console import Console
 from rich.prompt import Prompt
 
 from orchestra import ErrorCodes, format_git_cmd_err
-from orchestra.config import CONF
 from orchestra.release import remote_name
 
 CMD_FMT = "gh workflow run --json --repo {repo} {workflow}"
@@ -28,7 +27,7 @@ def git_error_handler(res: PushInfoList, err: ErrorCodes, msg: str):
         console.print(f"pushed {msg}")
 
 
-def push_tags(pkg: str, repo: Repo, tag: str):
+def push_tags(CONF: dict, pkg: str, repo: Repo, tag: str):
     if len(repo.remotes) > 1:
         console.print(
             *(
@@ -58,7 +57,7 @@ def push_tags(pkg: str, repo: Repo, tag: str):
     git_error_handler(res, ErrorCodes.DUPTAG_ERR, f"{tag=} -> {remote.name!r}")
 
 
-def dispatch_workflow(pkgtags_json: Path, **kwargs):
+def dispatch_workflow(CONF: dict, pkgtags_json: Path, **kwargs):
     """Dispatch workflow to build and publish packages
 
     Parameters
@@ -92,7 +91,7 @@ def dispatch_workflow(pkgtags_json: Path, **kwargs):
     return res
 
 
-def publish_tags_whls(config: dict, pkgtags: Path):
+def publish_tags_whls(CONF: dict, pkgtags: Path):
     """Publish packages to PyPI
 
     Push Git tags to GitHub and trigger a workflow to build the
@@ -107,7 +106,7 @@ def publish_tags_whls(config: dict, pkgtags: Path):
         Path to the JSON file containing the package tags
     """
     tags = json.loads(pkgtags.read_text())
-    for pkg, repo_path in config["repos"].items():
+    for pkg, repo_path in CONF["repos"].items():
         repo = Repo(repo_path)
-        push_tags(pkg, repo, tags[remote_name(repo)])
-    dispatch_workflow(pkgtags)
+        push_tags(CONF, pkg, repo, tags[remote_name(repo)])
+    dispatch_workflow(CONF, pkgtags)

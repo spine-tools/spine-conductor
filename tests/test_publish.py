@@ -6,7 +6,6 @@ from git import Remote
 import pytest
 
 from orchestra import ErrorCodes
-from orchestra.config import CONF
 from orchestra.publish import dispatch_workflow, push_tags
 
 from .conftest import commit, edit, example_pkgs
@@ -14,7 +13,7 @@ from .conftest import commit, edit, example_pkgs
 
 @pytest.mark.parametrize("dup_repos", ["scm"], indirect=True)
 @pytest.mark.parametrize("response", ["0", None])
-def test_push_tags(dup_repos, response, monkeypatch):
+def test_push_tags(CONF, dup_repos, response, monkeypatch):
     name, _, src, dst = dup_repos
     if response is None:
         Remote.rm(dst, "upstream")  # created in fixture
@@ -22,19 +21,19 @@ def test_push_tags(dup_repos, response, monkeypatch):
         monkeypatch.setattr("sys.stdin", StringIO(response))
 
     dst.create_tag("test_tag")
-    push_tags(example_pkgs[name], dst, "test_tag")  # test_tag from fixture
+    push_tags(CONF, example_pkgs[name], dst, "test_tag")  # test_tag from fixture
     assert any(t for t in src.tags if t.name == "test_tag")
 
 
 @pytest.mark.parametrize("dup_repos", ["scm"], indirect=True)
 @pytest.mark.parametrize("response", ["bad", "\n"])
-def test_push_tags_bad_prompt(dup_repos, response, monkeypatch, capsys):
+def test_push_tags_bad_prompt(CONF, dup_repos, response, monkeypatch, capsys):
     name, _, _, dst = dup_repos
     monkeypatch.setattr("sys.stdin", StringIO(response))
 
     # FIXME: in Python 3.10 str(IntEnum.ENUM) returns "ENUM" instead of "ENUM.value"
     with pytest.raises(SystemExit, match=str(int(ErrorCodes.USERINPUT_ERR))):
-        push_tags(example_pkgs[name], dst, "dummy")
+        push_tags(CONF, example_pkgs[name], dst, "dummy")
 
     captured = capsys.readouterr()
     match response:
@@ -64,7 +63,7 @@ def conflicting_tags(repo1, repo2, fname, tag):
 
 @pytest.mark.parametrize("dup_repos", ["scm"], indirect=True)
 @pytest.mark.parametrize("err", [ErrorCodes.DUPTAG_ERR, ErrorCodes.REMOTE_ERR])
-def test_push_tags_err(dup_repos, err, capsys):
+def test_push_tags_err(CONF, dup_repos, err, capsys):
     name, _, src, dst = dup_repos
     Remote.rm(dst, "upstream")  # simplify choice of remotes
 
@@ -77,7 +76,7 @@ def test_push_tags_err(dup_repos, err, capsys):
 
     # FIXME: in Python 3.10 str(IntEnum.ENUM) returns "ENUM" instead of "ENUM.value"
     with pytest.raises(SystemExit, match=str(int(err))):
-        push_tags(example_pkgs[name], dst, "test_tag")  # test_tag from fixture
+        push_tags(CONF, example_pkgs[name], dst, "test_tag")  # test_tag from fixture
 
     captured = capsys.readouterr()
     if err == ErrorCodes.REMOTE_ERR:
@@ -89,7 +88,7 @@ def test_push_tags_err(dup_repos, err, capsys):
 
 
 @pytest.mark.parametrize("cmd", ["echo {repo} {workflow}", "grep packagename_regex"])
-def test_dispatch_workflow(cmd, monkeypatch):
+def test_dispatch_workflow(CONF, cmd, monkeypatch):
     """NOTE: echo to test config substitution, grep to test PIPE"""
 
     if sys.platform in ("win32",):
@@ -98,7 +97,7 @@ def test_dispatch_workflow(cmd, monkeypatch):
         cmd = cmd.replace("grep", "Select-String -Pattern")
 
     monkeypatch.setattr("orchestra.publish.CMD_FMT", cmd)
-    res = dispatch_workflow(Path(__file__).parent / "scm.toml")
+    res = dispatch_workflow(CONF, Path(__file__).parent / "scm.toml")
     assert not isinstance(res, Exception)
     out = res.stdout.decode("utf8")
     if "echo" in cmd:
