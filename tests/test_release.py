@@ -113,6 +113,25 @@ def test_update_pkg_deps(CONF, repo, expect):
         assert changes == []
 
 
+@pytest.mark.parametrize("exclude", ["cyclic", "base"])
+@pytest.mark.parametrize(
+    "repo, expect", [("scm", []), ("scm-dep", ["not-empty"])], indirect=["repo"]
+)
+def test_update_pkg_deps_excluded(CONF, repo, expect, exclude):
+    cyclic_pkgs = {example_pkgs["scm"], example_pkgs["scm-dep"]}
+    match exclude:
+        case "cyclic":
+            CONF["repos"].pop(*(cyclic_pkgs - {remote_name(repo)}))
+        case "base":
+            CONF["repos"].pop(example_pkgs["scm-base"])
+    update_pkg_deps(CONF, repo, next_versions)
+    changes = repo.index.diff(None)
+    if expect:
+        assert changes
+    else:
+        assert changes == []
+
+
 @pytest.mark.parametrize("repo", ["scm"], indirect=True)
 def test_alt_pkg_names(CONF, repo):
     pkg_dash2us(f"{repo.working_dir}/pyproject.toml")  # setup
