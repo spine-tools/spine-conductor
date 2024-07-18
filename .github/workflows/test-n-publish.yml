@@ -25,42 +25,43 @@ jobs:
     strategy:
       matrix:
         pkg: ['Spine-Database-API', 'spine-engine', 'spine-items', 'Spine-Toolbox']
+        python: ["3.8.1"]
 
     runs-on: ubuntu-latest
     steps:
     - name: Checkout ${{ matrix.pkg }}
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: 'spine-tools/${{ matrix.pkg }}'
         path: ${{ matrix.pkg }}
         ref: ${{ inputs[matrix.pkg] }}
     - name: Ensure Git checkout is not dirty
-      if: ${{ inputs[matrix.pkg]  != 'skip' }}
+      if: inputs[matrix.pkg]  != 'skip'
       run: cd ${{ matrix.pkg }} && git describe --tags --dirty | grep -vE '[-]dirty$'
     - name: Ensure Git checkout does not have additional commits
-      if: ${{ inputs[matrix.pkg]  != 'skip' }}
+      if: inputs[matrix.pkg]  != 'skip'
       run: cd ${{ matrix.pkg }} && git describe --tags | grep -vE '[-]g[a-z0-9]{8}$'
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.8'
+        python-version: ${{ matrix.python }}
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install build
     - name: Build
-      if: ${{ inputs[matrix.pkg]  != 'skip' }}
+      if: inputs[matrix.pkg] != 'skip'
       run: |
         python -m build ${{ matrix.pkg }}
     - name: Download wheels for packages excluded from build
-      if: ${{ inputs[matrix.pkg]  == 'skip' }}
+      if: inputs[matrix.pkg] == 'skip'
       run: |
         mkdir -p ${{ matrix.pkg }}/dist/
         sed -nEe 's/name[ ]*=[ ]*"?([a-z0-9_-]+)"?/\1/p' ${{ matrix.pkg }}/pyproject.toml > pkgname
-        python -m pip download --no-deps --python-version 3.8.1 \
+        python -m pip download --no-deps --python-version ${{ matrix.python }} \
           --dest ${{ matrix.pkg }}/dist/ $(cat pkgname)
     - name: Save ${{ matrix.pkg }} wheel
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.pkg }}
         path: ${{ matrix.pkg }}/dist/*

@@ -14,7 +14,7 @@ on:
 
 jobs:
   publish-whl:
-    if: ${{ inputs.ver }} != 'skip'
+    if: inputs.ver != 'skip'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -22,7 +22,7 @@ jobs:
     - name: Make dist directory
       run: mkdir -p dist
     - name: Download all wheels
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: dist
     - name: Publish to PyPI using trusted publishing
