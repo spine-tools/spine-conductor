@@ -47,11 +47,11 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install build
     - name: Build
-      if: ${{ inputs[matrix.pkg] }} != 'skip'
+      if: ${{ inputs[matrix.pkg]  != 'skip' }}
       run: |
         python -m build ${{ matrix.pkg }}
     - name: Download wheels for packages excluded from build
-      if: ${{ inputs[matrix.pkg] }} == 'skip'
+      if: ${{ inputs[matrix.pkg]  == 'skip' }}
       run: |
         mkdir -p ${{ matrix.pkg }}/dist/
         sed -nEe 's/name[ ]*=[ ]*"?([a-z0-9_-]+)"?/\1/p' ${{ matrix.pkg }}/pyproject.toml > pkgname
