@@ -57,7 +57,7 @@ jobs:
       run: |
         mkdir -p ${{ matrix.pkg }}/dist/
         sed -nEe 's/name[ ]*=[ ]*"?([a-z0-9_-]+)"?/\1/p' ${{ matrix.pkg }}/pyproject.toml > pkgname
-        python -m pip download --no-deps --python-version 3.8 \
+        python -m pip download --no-deps --python-version 3.8.1 \
           --dest ${{ matrix.pkg }}/dist/ $(cat pkgname)
     - name: Save ${{ matrix.pkg }} wheel
       uses: actions/upload-artifact@v3
