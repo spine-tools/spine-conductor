@@ -35,8 +35,10 @@ jobs:
         path: ${{ matrix.pkg }}
         ref: ${{ inputs[matrix.pkg] }}
     - name: Ensure Git checkout is not dirty
+      if: ${{ inputs[matrix.pkg]  != 'skip' }}
       run: cd ${{ matrix.pkg }} && git describe --tags --dirty | grep -vE '[-]dirty$'
     - name: Ensure Git checkout does not have additional commits
+      if: ${{ inputs[matrix.pkg]  != 'skip' }}
       run: cd ${{ matrix.pkg }} && git describe --tags | grep -vE '[-]g[a-z0-9]{8}$'
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -70,7 +72,7 @@ jobs:
       matrix:
         pkg: ['Spine-Database-API', 'spine-engine', 'spine-items', 'Spine-Toolbox']
         os: [ubuntu-latest, windows-latest]
-        python: ["3.8", "3.9", "3.10", "3.11"]
+        python: ["3.8", "3.9", "3.10", "3.11", "3.12"]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -85,7 +87,7 @@ jobs:
       with:
         repository: 'spine-tools/${{ matrix.pkg }}'
         path: ${{ matrix.pkg }}
-        ref: ${{ inputs[matrix.pkg] }}
+        ref: ${{ inputs[matrix.pkg] != 'skip' && inputs[matrix.pkg] || 'master' }}
     - name: Set up Python ${{ matrix.python }}
       uses: actions/setup-python@v4
       with:
