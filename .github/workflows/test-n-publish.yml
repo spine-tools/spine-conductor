@@ -33,7 +33,7 @@ jobs:
       with:
         repository: 'spine-tools/${{ matrix.pkg }}'
         path: ${{ matrix.pkg }}
-        ref: ${{ inputs[matrix.pkg] }}
+        ref: ${{ inputs[matrix.pkg] != 'skip' && inputs[matrix.pkg] || 'master' }}
     - name: Ensure Git checkout is not dirty
       run: cd ${{ matrix.pkg }} && git describe --tags --dirty | grep -vE '[-]dirty$'
     - name: Ensure Git checkout does not have additional commits
