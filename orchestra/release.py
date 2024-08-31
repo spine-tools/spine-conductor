@@ -300,6 +300,14 @@ def create_tags(
             repo.git.add("pyproject.toml")
         added = len([i for i in repo.index.diff("HEAD")])
 
+        # NOTE: exit gracefully if python files were modified, as we
+        # may not be able to run pre-commit hooks (depends on env setup)
+        if py_files := list(filter(lambda p: p.endswith(".py"), modified)):
+            msg = f"{repo.working_tree_dir}: python files modified: {py_files}\n"
+            msg += "Please commit in the dev environment so that pre-commit hooks can be run."
+            console.print(msg)
+            ErrorCodes.COMMIT_ERR.exit()
+
         if added > 0:
             try:
                 msg = invoke_editor(repo, next_version)
@@ -309,7 +317,7 @@ def create_tags(
                 console.print(format_exc(err, "Aborting commit!"))
                 ErrorCodes.COMMIT_ERR.exit()
             else:
-                repo.index.commit(msg)
+                repo.index.commit(msg, skip_hooks=True)
 
         console.print(
             f"Creating tag: {next_version} @ [yellow]{repo.head.commit.hexsha[:7]}"
