@@ -48,7 +48,7 @@ jobs:
       run: cd ${{ matrix.pkg }} && git describe --tags --dirty | grep -vE '[-]dirty$'
     - name: Ensure Git checkout does not have additional commits
       if: inputs[matrix.pkg]  != 'skip'
-      run: cd ${{ matrix.pkg }} && git describe --tags | grep -vE '[-]g[a-z0-9]{8}$'
+      run: cd ${{ matrix.pkg }} && git describe --tags | grep -vE '[-]g[a-z0-9]{7,10}$'
     - name: Build
       if: inputs[matrix.pkg] != 'skip'
       run: |
