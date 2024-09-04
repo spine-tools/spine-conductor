@@ -70,3 +70,34 @@ are the following (latest existing tag is **0.3.1**):
 Preference:
 - `release-branch-semver`: forward-looking (current choice)
 - `post-release`: clear and concise
+
+# Release workflow
+
+```mermaid
+---
+title: Build
+---
+flowchart TD
+    subgraph projects
+      direction TB
+      A1(["project 1"]) -.- A2(["project 2 (skip)"]) -.- An(["project n"])
+    end
+    projects --> B{version == 'skip'? }
+    B -- yes --> C(download latest <br/> wheel from PyPI)
+    B -- no --> D(build wheel <br/> from source)
+    C --> E([Upload wheels <br/> as artifact])
+    D --> E
+```
+
+```mermaid
+---
+title: Test
+---
+flowchart TD
+    P([project]) --> F{version == 'skip'?}
+    F -- yes --> Z([stop])
+    F -- no --> G[Download all wheel <br/> artifacts and install]
+    G --> tests[[Test for supported <br/> Python versions]]
+    tests -- all pass --> H(["Publish to PyPI <br/> (separate workflow)"])
+    tests -- any fail -->I([Nothing published])
+```
