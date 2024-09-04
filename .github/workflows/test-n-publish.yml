@@ -25,7 +25,7 @@ jobs:
     strategy:
       matrix:
         pkg: ['Spine-Database-API', 'spine-engine', 'spine-items', 'Spine-Toolbox']
-        python: ["3.8.1"]
+        python: ["3.12"]
 
     runs-on: ubuntu-latest
     steps:
