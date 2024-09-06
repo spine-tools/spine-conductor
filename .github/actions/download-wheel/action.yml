@@ -1,0 +1,30 @@
+name: Download wheel
+description: Composite action to download Spine package wheels from PyPI
+
+inputs:
+  pkg:
+    description: Package name
+    type: string
+    required: true
+  python:
+    description: Python version
+    type: string
+    required: true
+
+runs:
+  using: composite
+  steps:
+  - name: Checkout ${{ inputs.pkg }}
+    uses: actions/checkout@v4
+    with:
+      repository: 'spine-tools/${{ inputs.pkg }}'
+      path: ${{ inputs.pkg }}
+  - name: Download latest wheel for package excluded from build
+    shell: bash
+    run: |
+      mkdir -p ${{ inputs.pkg }}/dist/
+      sed -nEe 's/name[ ]*=[ ]*"?([a-z0-9_-]+)"?/\1/p' \
+        ${{ inputs.pkg }}/pyproject.toml > pkgname
+      echo "Downloading $(cat pkgname)"
+      python -m pip download --no-deps --python-version ${{ inputs.python }} \
+        --dest ${{ inputs.pkg }}/dist/ $(cat pkgname)

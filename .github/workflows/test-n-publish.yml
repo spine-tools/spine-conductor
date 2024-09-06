@@ -29,6 +29,8 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout spine-conductor (for actions)
+      uses: actions/checkout@v4
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -37,29 +39,18 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install build
-    - name: Checkout ${{ matrix.pkg }}
-      uses: actions/checkout@v4
+    - name: Build ${{ matrix.pkg }}==${{ inputs[matrix.pkg] }}
+      if: inputs[matrix.pkg]  != 'skip'
+      uses: ./.github/actions/build-wheel
       with:
-        repository: 'spine-tools/${{ matrix.pkg }}'
-        path: ${{ matrix.pkg }}
-        ref: ${{ inputs[matrix.pkg] }}
-    - name: Ensure Git checkout is not dirty
-      if: inputs[matrix.pkg]  != 'skip'
-      run: cd ${{ matrix.pkg }} && git describe --tags --dirty | grep -vE '[-]dirty$'
-    - name: Ensure Git checkout does not have additional commits
-      if: inputs[matrix.pkg]  != 'skip'
-      run: cd ${{ matrix.pkg }} && git describe --tags | grep -vE '[-]g[a-z0-9]{7,10}$'
-    - name: Build
-      if: inputs[matrix.pkg] != 'skip'
-      run: |
-        python -m build ${{ matrix.pkg }}
-    - name: Download wheels for packages excluded from build
+        pkg: ${{ matrix.pkg }}
+        ver: ${{ inputs[matrix.pkg] }}
+    - name: Download ${{ matrix.pkg }}
       if: inputs[matrix.pkg] == 'skip'
-      run: |
-        mkdir -p ${{ matrix.pkg }}/dist/
-        sed -nEe 's/name[ ]*=[ ]*"?([a-z0-9_-]+)"?/\1/p' ${{ matrix.pkg }}/pyproject.toml > pkgname
-        python -m pip download --no-deps --python-version ${{ matrix.python }} \
-          --dest ${{ matrix.pkg }}/dist/ $(cat pkgname)
+      uses: ./.github/actions/download-wheel
+      with:
+        pkg: ${{ matrix.pkg }}
+        python: ${{ matrix.python }}
     - name: Save ${{ matrix.pkg }} wheel
       uses: actions/upload-artifact@v4
       with:

@@ -1,0 +1,35 @@
+name: Build wheel
+description: Composite action to build Spine package wheels
+
+inputs:
+  pkg:
+    description: Package name
+    type: string
+    required: true
+  ver:
+    description: Release tag
+    type: string
+    required: true
+
+runs:
+  using: composite
+  steps:
+  - name: Checkout ${{ inputs.pkg }}==${{ inputs.ver }}
+    uses: actions/checkout@v4
+    with:
+      repository: 'spine-tools/${{ inputs.pkg }}'
+      path: ${{ inputs.pkg }}
+      ref: ${{ inputs.ver }}
+  - name: Ensure Git checkout is not dirty
+    # this may happen if repo has files w/ different line-endings
+    shell: bash
+    run: |
+      cd ${{ inputs.pkg }} && git describe --tags --dirty | grep -vE '[-]dirty$'
+  - name: Ensure there are no additional commits since latest release
+    shell: bash
+    run: |
+      cd ${{ inputs.pkg }} && git describe --tags | grep -vE '[-]g[a-z0-9]{7,10}$'
+  - name: Build ${{ inputs.pkg }}==${{ inputs.ver }}
+    shell: bash
+    run: |
+      python -m build ${{ inputs.pkg }}
