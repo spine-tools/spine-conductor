@@ -80,7 +80,10 @@ jobs:
     strategy:
       matrix:
         pkg: ['Spine-Database-API', 'spine-engine', 'spine-items', 'Spine-Toolbox']
+        # TODO: can this be done w/o a matrix strategy?  That will be more atomic.
 
+    permissions:
+      id-token: write
     uses: ./.github/workflows/publish-wheel.yml
     with:
       pkg: ${{ matrix.pkg }}
