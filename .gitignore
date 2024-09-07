@@ -9,7 +9,7 @@ __pycache__
 build
 *.egg-info
 
-.*/
+.*cache/
 out/
 
 *.gz
