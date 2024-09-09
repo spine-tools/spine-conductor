@@ -79,7 +79,7 @@ title: Build
 ---
 flowchart TD
     subgraph projects
-      direction TB
+      direction LR
       A1(["project 1"]) -.- A2(["project 2 (skip)"]) -.- An(["project n"])
     end
     projects --> B{version == 'skip'? }
