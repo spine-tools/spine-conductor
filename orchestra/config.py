@@ -2,6 +2,7 @@ from copy import deepcopy
 import re
 from typing import Any
 
+from click.exceptions import BadArgumentUsage
 from rich.console import Console
 import tomlkit
 
@@ -38,7 +39,7 @@ def check_pkgnames(CONF: dict[str, Any], key: str) -> str:
     return msg.format(f"{', '.join(unk)}") if len(unk) > 0 else ""
 
 
-def read_conf(path: str) -> dict:
+def read_conf(path: str, /, only: list[str] = [], exclude: list[str] = []) -> dict:
     CONF = deepcopy(_CONF)
     config = read_toml(path)
     if "tool" in config and "conductor" in config["tool"]:
@@ -82,5 +83,17 @@ def read_conf(path: str) -> dict:
     branches_default = {pkg: CONF["default_branch"] for pkg in CONF["repos"]}
     branches = CONF["branches"] if "branches" in CONF else {}
     CONF["branches"].update({**branches_default, **branches})
+
+    if only and exclude:
+        raise BadArgumentUsage("`--only` and `--exclude` are mutually exclusive")
+    elif exclude:
+        only = [pkg for pkg in config["repos"].keys() if pkg not in exclude]
+
+    if len(only) > 0:
+        CONF["repos"] = {pkg: CONF["repos"][pkg] for pkg in only}
+        branches = {
+            pkg: branch for pkg, branch in CONF["branches"].items() if pkg in only
+        }
+        CONF["branches"] = branches
 
     return CONF

@@ -338,14 +338,9 @@ def create_tags(
     return summary
 
 
-def make_release(
-    CONF: dict, bump_version: VersionPart, output: Path, only: list[str] = []
-):
+def make_release(CONF: dict, bump_version: VersionPart, output: Path):
     """Make release tag for all packages, and print a summary."""
     branches = CONF["branches"]
-    if len(only) > 0:
-        CONF["repos"] = {pkg: CONF["repos"][pkg] for pkg in only}
-        branches = {pkg: branches[pkg] for pkg in only}
     try:
         check_current_branch(CONF["repos"], branches)
     except RuntimeError as err:
@@ -373,6 +368,6 @@ if __name__ == "__main__":
         only: list[str] = [],
     ):
         CONF = read_conf(f"{config}")
-        make_release(CONF, bump_version, output, only)
+        make_release(CONF, bump_version, output)
 
     typer.run(main)

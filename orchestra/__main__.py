@@ -57,12 +57,8 @@ def release(
     ),
 ):
     """Tag releases for all packages."""
-    conf = read_conf(f"{config}")
-    if only and exclude:
-        raise BadArgumentUsage("`--only` and `--exclude` are mutually exclusive")
-    elif exclude:
-        only = [pkg for pkg in conf["repos"].keys() if pkg not in exclude]
-    make_release(conf, bump_version, output, only)
+    conf = read_conf(f"{config}", only=only, exclude=exclude)
+    make_release(conf, bump_version, output)
 
 
 @cli.command()
