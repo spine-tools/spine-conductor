@@ -2,7 +2,7 @@ from pathlib import Path
 import sys
 from typing import Annotated
 
-from click.exceptions import BadArgumentUsage, BadParameter
+from click.exceptions import BadParameter
 from packaging.requirements import InvalidRequirement
 from rich.console import Console
 import typer
