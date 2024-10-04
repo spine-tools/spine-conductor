@@ -1,4 +1,5 @@
 from io import StringIO
+import json
 from pathlib import Path
 import sys
 
@@ -6,7 +7,7 @@ from git import Remote
 import pytest
 
 from orchestra import ErrorCodes
-from orchestra.publish import dispatch_workflow, push_tags
+from orchestra.publish import dispatch_workflow, publish_tags_whls, push_tags
 
 from .conftest import commit, edit, example_pkgs
 
@@ -106,3 +107,16 @@ def test_dispatch_workflow(CONF, cmd, monkeypatch):
         *_, token = cmd.split()
         # the .strip is required on windows as we call powershell explicitly
         assert token.strip("'\"") in out
+
+
+@pytest.mark.parametrize("dup_repos", ["scm"], indirect=True)
+@pytest.mark.parametrize("cmd", ["echo {repo} {workflow}"])
+def test_publish_tags_whls(CONF, dup_repos, cmd, monkeypatch):
+    name, _, src, dst = dup_repos
+    monkeypatch.setattr("sys.stdin", StringIO("0"))
+    dst.create_tag("test_tag")
+    pkgtags = Path(f"{dst.working_dir}/pkgtags.json")
+    pkgtags.write_text(json.dumps({"scm": "test_tag"}))
+
+    # FIXME: is this sufficient?
+    publish_tags_whls(CONF, pkgtags)

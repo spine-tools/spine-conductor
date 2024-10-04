@@ -107,6 +107,8 @@ def publish_tags_whls(CONF: dict, pkgtags: Path):
     """
     tags = json.loads(pkgtags.read_text())
     for pkg, repo_path in CONF["repos"].items():
+        if pkg not in tags:
+            continue
         repo = Repo(repo_path)
         push_tags(CONF, pkg, repo, tags[remote_name(repo)])
     dispatch_workflow(CONF, pkgtags)
