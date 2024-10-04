@@ -111,4 +111,4 @@ def publish_tags_whls(CONF: dict, pkgtags: Path):
             continue
         repo = Repo(repo_path)
         push_tags(CONF, pkg, repo, tags[remote_name(repo)])
-    dispatch_workflow(CONF, pkgtags)
+    return dispatch_workflow(CONF, pkgtags)

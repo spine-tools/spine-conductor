@@ -112,11 +112,16 @@ def test_dispatch_workflow(CONF, cmd, monkeypatch):
 @pytest.mark.parametrize("dup_repos", ["scm"], indirect=True)
 @pytest.mark.parametrize("cmd", ["echo {repo} {workflow}"])
 def test_publish_tags_whls(CONF, dup_repos, cmd, monkeypatch):
-    name, _, src, dst = dup_repos
     monkeypatch.setattr("sys.stdin", StringIO("0"))
+    monkeypatch.setattr("orchestra.publish.CMD_FMT", cmd)
+
+    name, origin, src, dst = dup_repos
     dst.create_tag("test_tag")
     pkgtags = Path(f"{dst.working_dir}/pkgtags.json")
     pkgtags.write_text(json.dumps({"scm": "test_tag"}))
 
     # FIXME: is this sufficient?
-    publish_tags_whls(CONF, pkgtags)
+    res = publish_tags_whls(CONF, pkgtags)
+    assert not isinstance(res, Exception)
+    out = res.stdout.decode("utf8")
+    assert all(token in out for token in CONF["workflow"].values())
