@@ -32,3 +32,5 @@ jobs:
         packages-dir: dist/${{ inputs.pkg }}
         # skip-existing: true
         # verify-metadata: false
+        # Temporary workaround for https://github.com/pypa/gh-action-pypi-publish/issues/283
+        attestations: false
