@@ -23,7 +23,7 @@ runs:
     shell: bash
     run: |
       mkdir -p ${{ inputs.pkg }}/dist/
-      sed -nEe 's/name[ ]*=[ ]*"?([a-z0-9_-]+)"?/\1/p' \
+      sed -nEe 's/^name[ ]*=[ ]*"?([a-z0-9_-]+)"?/\1/p' \
         ${{ inputs.pkg }}/pyproject.toml > pkgname
       echo "Downloading $(cat pkgname)"
       python -m pip download --no-deps --python-version ${{ inputs.python }} \
