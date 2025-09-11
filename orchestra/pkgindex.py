@@ -1,5 +1,6 @@
 from email.parser import Parser as MetadataParser
 from enum import Enum
+from itertools import chain
 from pathlib import Path
 import re
 from typing import Literal
@@ -9,6 +10,7 @@ from packaging.version import Version
 from pypi_simple import PyPISimple, ACCEPT_JSON_ONLY, DistributionPackage
 from wheel.wheelfile import WheelFile
 
+from .config import read_toml
 from .release import version_parse_no_except
 
 
@@ -189,3 +191,17 @@ def requirements_from_whl(path: str | Path) -> list[Requirement]:
             metadata = MetadataParser().parsestr(fp.read().decode("utf8"))
             res = list(map(Requirement, metadata.get_all("Requires-Dist", [])))
     return res
+
+
+def requirements_from_pyproject(
+    proj_path: str | Path, include_dev: bool = True
+) -> list[Requirement]:
+    proj_path = Path(proj_path)
+    file_path = proj_path / "pyproject.toml"
+    proj = read_toml(f"{file_path}")
+    deps = proj["project"].get("dependencies", [])
+
+    if include_dev and (dev_req := proj_path / "dev-requirements.txt").exists():
+        deps += list(filter(None, dev_req.read_text().split("\n")))
+
+    return list(map(Requirement, deps))
