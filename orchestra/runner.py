@@ -375,13 +375,13 @@ def clone_from(src_path: str, dst_path: str, branch: str) -> Repo:
     return repo
 
 
-def run_xtest(config: dict, ref: list[str], dev: list[str]):
-    """Runs the tests for a package
+def mkvenv_xtest(
+    config: dict, ref: list[str], dev: list[str]
+) -> tuple[str, list[Repo]]:
+    """Create a virtual environment for cross testing.
 
-    TODO: split this into venv setup, and runner
-
-    Parameters:
-    -----------
+    Parameters
+    ----------
     config: dict
         The configuration for the package
     ref: list[str]
@@ -389,10 +389,13 @@ def run_xtest(config: dict, ref: list[str], dev: list[str]):
     dev: list[str]
         The development requirements
 
-    Raises
-    ------
-    ValueError
-        If the package spec is incorrect, or unknown packages are included
+    Returns
+    -------
+    venv_name: str
+        Name of the virtual environment
+    srcs: list[Repo]
+        List of (dev) repositories to test
+
     """
     ref_pkgs = {Requirement(dep).name: pkg_find(dep) for dep in ref}
     whls = {name: pkg_download(pkg, wheel_dir) for name, pkg in ref_pkgs.items()}
@@ -445,9 +448,29 @@ def run_xtest(config: dict, ref: list[str], dev: list[str]):
     )
     # NOTE: git.Repo.working_dir isn't typed
     pip_install(venv_name, requires=our_deps, no_deps=True)  # type: ignore
+    return venv_name, [repos[name] for name in dev_pkgs]
 
-    for name, gitref in dev_pkgs.items():
-        repo = repos[name]
+
+def run_xtest(config: dict, ref: list[str], dev: list[str]):
+    """Runs the tests for a package
+
+    Parameters
+    ----------
+    config: dict
+        The configuration for the package
+    ref: list[str]
+        The reference requirements
+    dev: list[str]
+        The development requirements
+
+    Raises
+    ------
+    ValueError
+        If the package spec is incorrect, or unknown packages are included
+    """
+    venv_name, srcs = mkvenv_xtest(config, ref, dev)
+
+    for repo in srcs:
         work_dir = repo.working_dir
         run_tests(f"{work_dir}/tests", venv_name=venv_name)
 
