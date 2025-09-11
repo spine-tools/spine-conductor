@@ -310,11 +310,10 @@ def resolve_versions(specs: Iterable[Requirement]) -> dict[str, str]:
     for name, versions in _res.items():
         _versions = list(set(versions))
         if len(_versions) > 1:
-            _versions_str = ",".join(_specs[name])
-            raise ValueError(
-                f"Requirements resolve to multiple versions: {name}{_versions_str}"
-            )
-        res[name] = _versions[0]
+            latest = sorted(map(Version, _versions))[-1]
+            res[name] = f"{latest}"
+        else:
+            res[name] = _versions[0]
 
     return res
 
