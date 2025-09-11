@@ -35,13 +35,13 @@ console = Console()
 def fmt_results(results: TestResult) -> tuple[Table, int]:
     """Formats the results of a test run
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     results: TestResult
         The results of a test run
 
-    Returns:
-    --------
+    Returns
+    -------
     tuple[Table, int]
         A tuple of a text table containing the result summary and the total
         number of failures and errors
@@ -69,8 +69,8 @@ def python_in_venv(name: str) -> tuple[str, str]:
 def has_pytest(name: str, debug: bool = False) -> bool:
     """Check if `pytest` is available.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     name: str
         Name of the Python environment
     debug: bool (default: False)
@@ -154,8 +154,8 @@ def pip_install(name: str = "", python: str = "", requires: Iterable[str] = [], 
     If both are present, the virtual environment specified by `name` takes
     precedence.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     name: str
         The name of the virtual environment
     python: str
@@ -191,8 +191,8 @@ def mkvenv(
     The metadata is stored in a file called `metadata.txt` in the virtual
     environment directory.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     name: str
         The name of the virtual environment
     metadata: str
@@ -239,8 +239,8 @@ def run_in_venv(
 ):
     """Runs a command in a virtual environment
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     name: str
         The name of the virtual environment
     cmd: str
@@ -269,8 +269,8 @@ def run_in_venv(
 def run_tests(directory: str, venv_name: str = "", in_process: bool = False):
     """Runs the unittests in a directory
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     directory: str
         The directory containing the tests
     venv_name: str
@@ -313,8 +313,8 @@ def spec(req: Requirement) -> tuple[str, str, str]:
 def resolve_versions(specs: Iterable[Requirement]) -> dict[str, str]:
     """Resolves a list of requirements to a list of unique versions by package
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     specs: Iterable[Requirement]
         The requirements to resolve
 
@@ -352,8 +352,8 @@ def resolve_versions(specs: Iterable[Requirement]) -> dict[str, str]:
 def clone_from(src_path: str, dst_path: str, branch: str) -> Repo:
     """Clones a git repository
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     src_path: str
         The path to the source repository
     dst_path: str
