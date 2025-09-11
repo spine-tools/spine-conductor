@@ -12,10 +12,14 @@ import venv
 
 from git import Repo
 from packaging.specifiers import Specifier
+from packaging.version import Version
 from rich.console import Console
 from rich.table import Table
 
-from .pkgindex import pkg_find, pkg_download, requirements_from_whl
+from .pkgindex import pkg_find
+from .pkgindex import pkg_download
+from .pkgindex import requirements_from_whl
+from .pkgindex import requirements_from_pyproject
 from .release import remote_name
 
 
@@ -347,6 +351,8 @@ def clone_from(src_path: str, dst_path: str, branch: str) -> Repo:
 def run_xtest(config: dict, ref: list[str], dev: list[str]):
     """Runs the tests for a package
 
+    TODO: split this into venv setup, and runner
+
     Parameters:
     -----------
     config: dict
@@ -363,47 +369,47 @@ def run_xtest(config: dict, ref: list[str], dev: list[str]):
     """
     ref_pkgs = {Requirement(dep).name: pkg_find(dep) for dep in ref}
     whls = {name: pkg_download(pkg, wheel_dir) for name, pkg in ref_pkgs.items()}
+
+    dev_pkgs = dict(dep.split("==") for dep in dev if "==" in dep)
+    if len(dev) != len(dev_pkgs):
+        raise ValueError(f"invalid package spec: {dev=}")
+    unk = [pkg for pkg in dev_pkgs if pkg not in config["repos"]]
+    if unk:
+        raise ValueError(f"unknown dev packages: {str(unk).strip('[]')}")
+
+    projpaths = [config["repos"][pkg] for pkg in dev_pkgs]
+
+    # NOTE: contains duplicates for our projects
     requirements = set(
-        chain(map(Requirement, ref), *map(requirements_from_whl, whls.values()))
+        chain(
+            *map(requirements_from_whl, whls.values()),
+            *map(requirements_from_pyproject, projpaths),
+        )
     )
 
     def is_ours(req):
         return config["pkgname_re"].match(req.name)
 
-    _requires = requirements
-    while ours := resolve_versions(filter(is_ours, _requires)):
-        _whls = {
-            name: pkg_download(pkg_find(f"{name}=={ver}"), wheel_dir)
-            for name, ver in ours.items()
-            if name not in whls
-        }
-        whls.update(_whls)
-        _requires = set(chain(*map(requirements_from_whl, _whls.values())))
-        requirements.update(_requires)
-
     t1, t2 = tee(requirements)
     rest = list(filterfalse(is_ours, t1))
-    # NOTE: filter out ours, as they may depend on the dev packages
-    ours = resolve_versions(filter(is_ours, t2))
+    ours = {
+        name: ver
+        for name, ver in resolve_versions(filter(is_ours, t2)).items()
+        if name not in dev_pkgs
+    }
     venv_vers = sorted(f"{pkg}=={ver}" for pkg, ver in ours.items()) + dev
     console.print(f"all versions: {','.join(venv_vers)}")
 
-    dev_pkgs = dict(dep.split("==") for dep in dev if "==" in dep)
-    if len(dev) != len(dev_pkgs):
-        raise ValueError(f"invalid package spec: {dev=}")
-    unk = [pkg for pkg in dev_pkgs if pkg not in ours]
-    if unk:
-        raise ValueError(f"unknown packages: {str(unk).strip('[]')}")
-
-    repos = {
+    repos: dict[str, Repo] = {
         name: clone_from(path, repo_dir, config["branches"][name])
         for name, path in config["repos"].items()
     }
+    # checkout 'dev' gitrefs
     for name, gitref in dev_pkgs.items():
         repos[name].git.checkout(gitref)
 
     venv_name = mkvenv(metadata="\n".join(venv_vers), requires=list(map(str, rest)))
-    console.print("venv: ", venv_name)
+    console.print("venv: ", f"{venv_dir}/venv_name")
 
     # install dev
     our_deps = chain(
@@ -413,14 +419,10 @@ def run_xtest(config: dict, ref: list[str], dev: list[str]):
     # NOTE: git.Repo.working_dir isn't typed
     pip_install(venv_name, requires=our_deps, no_deps=True)  # type: ignore
 
-    for name in dev_pkgs:
+    for name, gitref in dev_pkgs.items():
         repo = repos[name]
-        # checkout ref tag
-        ver = ours[name]
-        repo.git.checkout(ver)  # should be a git tag
-        # run tests
         work_dir = repo.working_dir
-        run_unittest(f"{work_dir}/tests", venv_name=venv_name)
+        run_tests(f"{work_dir}/tests", venv_name=venv_name)
 
     return
 
