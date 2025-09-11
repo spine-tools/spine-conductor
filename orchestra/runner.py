@@ -66,6 +66,29 @@ def python_in_venv(name: str) -> tuple[str, str]:
     return venvpath, python
 
 
+def has_pytest(name: str, debug: bool = False) -> bool:
+    """Check if `pytest` is available.
+
+    Parameters:
+    -----------
+    name: str
+        Name of the Python environment
+    debug: bool (default: False)
+        Print stdout & stderr if `True`.
+
+    Returns
+    -------
+    status: bool
+
+    """
+    _, python = python_in_venv(name)
+    ret = subprocess.run(f"{python} -m pytest --version".split(), capture_output=True)
+    if debug:
+        console.print("stdout:", ret.stdout.decode())
+        console.print("stderr:", ret.stderr.decode())
+    return ret.returncode == 0
+
+
 def opts_to_flags(k: str, v: Any, no_eq: bool = False) -> str:
     """Converts a key-value pair to a command line flag
 
@@ -243,7 +266,7 @@ def run_in_venv(
     subprocess.run(pycmd)
 
 
-def run_unittest(directory: str, venv_name: str = "", in_process: bool = False):
+def run_tests(directory: str, venv_name: str = "", in_process: bool = False):
     """Runs the unittests in a directory
 
     Parameters:
@@ -267,6 +290,7 @@ def run_unittest(directory: str, venv_name: str = "", in_process: bool = False):
 
     """
     if in_process:
+        # TODO: support pytest
         test_suite = defaultTestLoader.discover(directory)
         results = test_suite.run(TestResult())
         return results
@@ -274,7 +298,10 @@ def run_unittest(directory: str, venv_name: str = "", in_process: bool = False):
         if not venv_name:
             raise ValueError("venv must be specified if not running in process")
 
-    run_in_venv(venv_name, "unittest", "discover", preface_opt=False, s=directory)
+    if has_pytest(venv_name):
+        run_in_venv(venv_name, "pytest", directory)
+    else:
+        run_in_venv(venv_name, "unittest", "discover", preface_opt=False, s=directory)
 
 
 def spec(req: Requirement) -> tuple[str, str, str]:
