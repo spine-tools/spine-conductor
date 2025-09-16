@@ -42,11 +42,9 @@ def push_tags(CONF: dict, pkg: str, repo: Repo, tag: str):
             except ValueError:
                 console.print(f"invalid selection: {response}, aborting!")
                 ErrorCodes.USERINPUT_ERR.exit()
-                return  # for pyright
         else:
             console.print("empty response, aborting!")
             ErrorCodes.USERINPUT_ERR.exit()
-            return  # for pyright
     else:
         remote = repo.remotes[0]
     ref = CONF["branches"][pkg]
