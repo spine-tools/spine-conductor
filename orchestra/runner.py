@@ -434,8 +434,8 @@ def mkvenv_xtest(
     console.print(f"all versions: {','.join(venv_vers)}")
 
     repos: dict[str, Repo] = {
-        name: clone_from(path, repo_dir, config["branches"][name])
-        for name, path in config["repos"].items()
+        name: clone_from(config["repos"][name], repo_dir, config["branches"][name])
+        for name in dev_pkgs
     }
     # checkout 'dev' gitrefs
     for name, gitref in dev_pkgs.items():
