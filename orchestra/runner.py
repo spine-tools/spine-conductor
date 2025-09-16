@@ -352,6 +352,8 @@ def resolve_versions(specs: Iterable[Requirement]) -> dict[str, str]:
 def clone_from(src_path: str, dst_path: str, branch: str) -> Repo:
     """Clones a git repository
 
+    If the desitination repo exists, fetches from the remote.
+
     Parameters
     ----------
     src_path: str
@@ -370,6 +372,7 @@ def clone_from(src_path: str, dst_path: str, branch: str) -> Repo:
     path = Path(dst_path) / remote_name(src_path)
     if path.exists():
         repo = Repo(path)
+        repo.git.fetch()
     else:
         repo = Repo.clone_from(src_path, path, multi_options=[f"-b {branch}"])
     return repo
