@@ -1,6 +1,5 @@
 from email.parser import Parser as MetadataParser
 from enum import Enum
-from itertools import chain
 from pathlib import Path
 import re
 from typing import Literal
