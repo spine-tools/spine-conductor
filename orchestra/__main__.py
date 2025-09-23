@@ -8,7 +8,7 @@ from rich.console import Console
 import typer
 
 from .config import read_conf
-from .publish import publish_tags_whls
+from .publish import make_bundle, publish_tags_whls
 from .release import VersionPart, make_release
 from .runner import run_xtest
 
@@ -72,6 +72,21 @@ def publish(
     """Push Git tags to GitHub and publish packages to PyPI"""
     conf = read_conf(f"{config}")
     publish_tags_whls(conf, pkgtags)
+
+
+@cli.command()
+def bundle(
+    ctx: typer.Context,
+    pkgtags: Annotated[Path, typer.Option(help="JSON file containing package tags")],
+    name: Annotated[
+        str, typer.Option(help="Name of the package to bundle")
+    ] = "Spine-Toolbox",
+    config: Annotated[Path, typer.Option("--conf", "-c", callback=path_exists)] = Path(
+        "pyproject.toml"
+    ),
+):
+    conf = read_conf(f"{config}")
+    make_bundle(conf, pkgtags, name)
 
 
 _xtest_doc_ref = (

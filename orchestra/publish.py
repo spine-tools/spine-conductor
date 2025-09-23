@@ -60,19 +60,54 @@ def dispatch_workflow(CONF: dict, pkgtags_json: Path, **kwargs):
 
     Parameters
     ----------
+    CONF: dict
+        Config file as dictionary
+
     pkgtags_json : Path
         Path to the JSON file containing the package tags
+
+    """
+    ghrepo = CONF["workflow"]["repo"]
+    workflow = CONF["workflow"]["file"]
+    json_input_bytes = pkgtags_json.read_bytes()
+    return dispatch_gh_workflow(ghrepo, workflow, json_input_bytes, **kwargs)
+
+
+def dispatch_gh_workflow(ghrepo: str, workflow: str, json_input_bytes: bytes, **kwargs):
+    """Generic wrapper to call a GitHub dispatch workflow in a repo.
+
+    Parameters
+    ----------
+    ghrepo: str
+        GitHub repository with the workflow in the 'owner/repo' format
+
+    workflow: str
+        The workflow file (in the '.github/workflows' directory) to call
+
+    json_input: Path
+        Input to the workflow passed as JSON.
+
+    Returns
+    -------
+    res: subprocess.CompletedProcess[bytes]
+        The output (stdout & stderr) of running the dispatch workflow
+        via GH CLI.
+
+    res: FileNotFoundError
+        If GH CLI is not installed.
+
+    res: subprocess.CalledProcessError
+        If there was an error triggering the workflow.
+
     """
     if _ := kwargs.pop("shell", None):
         console.print("disallow shell=True, as it suppresses output")
 
-    ghrepo = CONF["workflow"]["repo"]
-    workflow = CONF["workflow"]["file"]
     CMD = CMD_FMT.format(repo=ghrepo, workflow=workflow)
     try:
         res = subprocess.run(
             shlex.split(CMD),
-            input=pkgtags_json.read_bytes(),
+            input=json_input_bytes,
             check=True,
             capture_output=True,
             **kwargs,
@@ -97,7 +132,7 @@ def publish_tags_whls(CONF: dict, pkgtags: Path):
 
     Parameters
     ----------
-    config : dict
+    CONF : dict
         Configuration from release.toml/pyproject.toml
 
     pkgtags : Path
@@ -110,3 +145,21 @@ def publish_tags_whls(CONF: dict, pkgtags: Path):
         repo = Repo(repo_path)
         push_tags(CONF, pkg, repo, tags[remote_name(repo)])
     return dispatch_workflow(CONF, pkgtags)
+
+
+def make_bundle(CONF: dict, pkgtags_json: Path, name: str, **kwargs):
+    """Dispatch workflow to bundle windows zips, and create a GitHub release.
+
+    Parameters
+    ----------
+    pkgtags_json : Path
+        Path to the JSON file containing the package tags
+    """
+    ghrepo = CONF["bundle"]["repo"]
+    workflow = CONF["bundle"]["file"]
+    pkgs = json.loads(pkgtags_json.read_text())
+    if version := pkgs.get(name):
+        json_bytes = json.dumps({"git-ref": version}).encode()
+        return dispatch_gh_workflow(ghrepo, workflow, json_bytes, **kwargs)
+    else:
+        console.print(f"cannot bundle: package {name!r} not in '{pkgtags_json}'")
