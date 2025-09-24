@@ -74,8 +74,8 @@ jobs:
       env:
         QT_QPA_PLATFORM: offscreen
       run: |
-        python -m unittest discover -s ${{ inputs.pkg }} --verbose
+        python -m pytest ${{ inputs.pkg }}/tests --verbose
     - name: Execution tests
       if: inputs.pkg == 'Spine-Toolbox'
       run: |
-        python -m unittest discover -s ${{ inputs.pkg }} --pattern execution_test.py --verbose
+        python -m pytest ${{ inputs.pkg }}/execution_test --verbose
