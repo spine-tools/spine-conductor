@@ -78,4 +78,4 @@ jobs:
     - name: Execution tests
       if: inputs.pkg == 'Spine-Toolbox'
       run: |
-        python -m pytest ${{ inputs.pkg }}/execution_test --verbose
+        python -m pytest ${{ inputs.pkg }}/execution_tests --verbose
