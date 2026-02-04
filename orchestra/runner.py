@@ -22,7 +22,6 @@ from .pkgindex import requirements_from_whl
 from .pkgindex import requirements_from_pyproject
 from .release import remote_name
 
-
 venv_dir = ".venvs"
 wheel_dir = ".wheels"
 repo_dir = ".repos"

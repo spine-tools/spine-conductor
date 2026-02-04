@@ -12,7 +12,6 @@ from wheel.wheelfile import WheelFile
 from .config import read_toml
 from .release import version_parse_no_except
 
-
 version_specifier = re.compile("[<>]=?|==|~=")
 
 
