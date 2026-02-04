@@ -20,7 +20,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.14"]
 
     runs-on: ubuntu-latest
     steps:
@@ -45,7 +45,7 @@ jobs:
 
     strategy:
       matrix:
-        pyver: ["py310", "py311", "py312"]
+        pyver: ["py310", "py314"]
 
     runs-on: ubuntu-latest
     steps:
@@ -64,7 +64,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         os: [ubuntu-latest, windows-latest, macos-latest]
         autocrlf: ["true", "false"]
         exclude:
@@ -99,7 +99,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.14"]
 
     runs-on: ubuntu-latest
     continue-on-error: true
