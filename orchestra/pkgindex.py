@@ -69,7 +69,7 @@ class Rel_t(Enum):
 
 def pkgs_meta(
     pkgname: str,
-    cutoff: int = 2022,
+    cutoff: int = 2025,
     pkg_type: Literal["wheel", "source"] = "wheel",
     rel_type: Rel_t = Rel_t.rel,
 ) -> list[DistributionPackage]:
@@ -79,8 +79,8 @@ def pkgs_meta(
     ----------
     pkgname : str
         Project name
-    cutoff : int, optional
-        Cutoff year until which packages are considered, by default 2022
+    cutoff : int; default: 2025
+        Cutoff year until which packages are considered
     pkg_type : Literal["wheel", "source"], optional
         Package type, by default "wheel"
     rel_type : Rel_t, optional
@@ -111,7 +111,7 @@ def pkgs_meta(
 
 def pkg_find(
     requirement_spec: str,
-    cutoff: int = 2022,
+    cutoff: int = 2025,
     pkg_type: Literal["wheel", "source"] = "wheel",
     rel_type: Rel_t = Rel_t.rel,
 ) -> DistributionPackage:
@@ -121,8 +121,8 @@ def pkg_find(
     ----------
     requirement_spec : str
         Requirement specifier; e.g. mypkg==<V.E.R>
-    cutoff : int, optional
-        Cutoff year until which packages are considered, by default 2022
+    cutoff : int; default: 2025
+        Cutoff year until which packages are considered
     pkg_type : Literal["wheel", "source"], optional
         Package type, by default "wheel"
     rel_type : Rel_t, optional
@@ -132,6 +132,11 @@ def pkg_find(
     -------
     DistributionPackage
         Package metadata
+
+    Raises
+    ------
+    RuntimeError
+        If no matching releases are found
     """
     req = Requirement(requirement_spec)
 
@@ -140,8 +145,10 @@ def pkg_find(
             return version in req.specifier
         return False
 
-    pkg, *_ = filter(version_match, pkgs_meta(req.name, cutoff, pkg_type, rel_type))
-    return pkg
+    try:
+        pkg, *_ = filter(version_match, pkgs_meta(req.name, cutoff, pkg_type, rel_type))
+    except ValueError:
+        raise RuntimeError(f"{req}: missing in PyPI")
 
 
 def pkg_download(pkg: DistributionPackage, outdir: str, force: bool = False) -> Path:
