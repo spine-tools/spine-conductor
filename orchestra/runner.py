@@ -175,7 +175,7 @@ def pip_install(name: str = "", python: str = "", requires: Iterable[str] = [], 
     cmd = f"{python} -m pip install".split()
     cmd += fmt_opts(opts, no_eq=True)
     cmd += requires
-    subprocess.run(cmd)
+    subprocess.run(cmd, capture_output=True)
 
 
 def mkvenv(
@@ -263,7 +263,7 @@ def run_in_venv(
     else:
         pycmd += args
         pycmd += fmt_opts(opts, no_eq=no_eq)
-    subprocess.run(pycmd)
+    return subprocess.run(pycmd, capture_output=True)
 
 
 def run_tests(directory: str, venv_name: str = "", in_process: bool = False):
@@ -280,8 +280,9 @@ def run_tests(directory: str, venv_name: str = "", in_process: bool = False):
 
     Returns
     -------
-    results: TestResult (when in_process=True)
-        The results of the tests
+    results:
+        - CompletedProcess (default): result object from `subprocess.run(..)`
+        - TestResult (when in_process=True): The results of the tests
 
     Raises
     ------
@@ -299,9 +300,11 @@ def run_tests(directory: str, venv_name: str = "", in_process: bool = False):
             raise ValueError("venv must be specified if not running in process")
 
     if has_pytest(venv_name):
-        run_in_venv(venv_name, "pytest", directory)
+        return run_in_venv(venv_name, "pytest", directory)
     else:
-        run_in_venv(venv_name, "unittest", "discover", preface_opt=False, s=directory)
+        return run_in_venv(
+            venv_name, "unittest", "discover", preface_opt=False, s=directory
+        )
 
 
 def spec(req: Requirement) -> tuple[str, str, str]:
@@ -454,7 +457,9 @@ def mkvenv_xtest(
     return venv_name, [repos[name] for name in dev_pkgs]
 
 
-def run_xtest(config: dict, ref: list[str], dev: list[str]):
+def run_xtest(
+    config: dict, ref: list[str], dev: list[str]
+) -> dict[tuple[str, ...], TestResult | subprocess.CompletedProcess]:
     """Runs the tests for a package
 
     Parameters
@@ -466,18 +471,28 @@ def run_xtest(config: dict, ref: list[str], dev: list[str]):
     dev: list[str]
         The development requirements
 
+    Returns
+    -------
+    dict[tuple[str, ...], TestResult | subprocess.CompletedProcess]
+        - key: Tuple of package requirement specs
+        - value: TestResult when run in_process,
+          subprocess.CompletedProcess from running the tests as a
+          subprocess.
+
     Raises
     ------
     ValueError
         If the package spec is incorrect, or unknown packages are included
+
     """
     venv_name, srcs = mkvenv_xtest(config, ref, dev)
-
-    for repo in srcs:
-        work_dir = repo.working_dir
-        run_tests(f"{work_dir}/tests", venv_name=venv_name)
-
-    return
+    results = {
+        tuple(f"{s}" for s in chain(dev, ref)): run_tests(
+            f"{repo.working_dir}/tests", venv_name=venv_name
+        )
+        for repo in srcs
+    }
+    return results
 
 
 if __name__ == "__main__":
