@@ -31,6 +31,72 @@ T = TypeVar("T")
 console = Console()
 
 
+def _tail(output: bytes) -> str:
+    """Tail last 2 lines of output (in bytes)."""
+    doc = output.decode("utf8").strip()
+    lines = doc.splitlines()
+    return "\n".join(lines[-5:])
+
+
+def tail_proc_outout(ret: subprocess.CompletedProcess) -> str:
+    """Tail subprocess output."""
+    output = ret.stderr if ret.returncode else ret.stdout
+    return _tail(output)
+
+
+def fmt_subprocess_results(
+    specs: list[tuple[str, ...]],
+    results: list[subprocess.CompletedProcess],
+    stats: list[dict[str, Any]],
+):
+    """Formats the results from subprocess test runs.
+
+    Parameters
+    ----------
+    specs: list[tuple[str, ...]]
+        Package specification for the test run
+    results: list[subprocess.CompletedProcess]
+        Resulting output of the test runs
+    stats: list[dict[str, Any]]
+        Additional stats aggregated from the test runs
+
+    Returns
+    -------
+    tuple[Table, int]
+        A tuple of a text table containing the result summary and the
+        total number of failures and errors
+
+    """
+    tbl = Table()
+    a_key = next(iter(specs))
+    for _spec in a_key:
+        pkg, _ = _spec.split("==", maxsplit=1)
+        tbl.add_column(pkg)
+    tbl.add_column("returncode")
+    tbl.add_column("result", no_wrap=False)
+
+    b_key = next(iter(stats))
+    for key in b_key:
+        tbl.add_column(key)
+
+    errors = 0
+    for spec, ret, counts in zip(specs, results, stats):
+        versions = [p.split("==", maxsplit=1)[-1] for p in spec]
+        if ret.returncode != 0:
+            errors += 1
+            style = "bold red"
+        else:
+            style = None
+        tbl.add_row(
+            *versions,
+            f"{ret.returncode}",
+            tail_proc_outout(ret),
+            *(str(i) for i in counts.values()),
+            style=style,
+        )
+    return tbl, errors
+
+
 def fmt_results(results: TestResult) -> tuple[Table, int]:
     """Formats the results of a test run
 
