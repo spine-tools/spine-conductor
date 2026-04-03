@@ -442,7 +442,7 @@ def mkvenv_xtest(
         repos[name].git.checkout(gitref)
 
     venv_name = mkvenv(metadata="\n".join(venv_vers), requires=list(map(str, rest)))
-    console.print("venv: ", f"{venv_dir}/venv_name")
+    console.print(f"venv: {venv_dir}/{venv_name}")
 
     # install dev
     our_deps = chain(
