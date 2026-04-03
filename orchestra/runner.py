@@ -5,7 +5,7 @@ from packaging.requirements import Requirement
 from pathlib import Path
 import subprocess
 import sys
-from typing import Any, Annotated, Iterable, TypeVar
+from typing import Any, Iterable, TypeVar
 from unittest import defaultTestLoader
 from unittest import TestResult
 import venv
@@ -44,6 +44,7 @@ def fmt_results(results: TestResult) -> tuple[Table, int]:
     tuple[Table, int]
         A tuple of a text table containing the result summary and the total
         number of failures and errors
+
     """
     tbl = Table(show_header=False)
     tbl.add_row("Tests Run", f"{results.testsRun}")
@@ -480,6 +481,8 @@ def run_xtest(config: dict, ref: list[str], dev: list[str]):
 
 
 if __name__ == "__main__":
+    from typing import Annotated
+
     import typer
 
     from .config import read_conf
