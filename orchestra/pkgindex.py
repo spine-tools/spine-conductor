@@ -15,6 +15,28 @@ from .release import version_parse_no_except
 version_specifier = re.compile("[<>]=?|==|~=")
 
 
+def is_requirement_in(req: Requirement | str, req_super: Requirement):
+    req = Requirement(req) if isinstance(req, str) else req
+    if req.name != req_super.name:
+        return False
+
+    # For a single == specifier, check if that version satisfies req_b
+    specifiers = list(req.specifier)
+    if len(specifiers) == 1 and specifiers[0].operator in ("==", "==="):
+        return specifiers[0].version in req_super.specifier
+
+    # For other specs, we'd need more complex logic to check specifier overlap
+    # This is a simplified check
+    return False
+
+
+def is_version_in(version: Version | str, req: Requirement) -> bool:
+    """Check if a specific version satisfies a requirement."""
+    if isinstance(version, str):
+        version = Version(version)
+    return version in req.specifier
+
+
 class Key(Enum):
     time = "time"
     day = "day"
@@ -147,6 +169,7 @@ def pkg_find(
 
     try:
         pkg, *_ = filter(version_match, pkgs_meta(req.name, cutoff, pkg_type, rel_type))
+        return pkg
     except ValueError:
         raise RuntimeError(f"{req}: missing in PyPI")
 
