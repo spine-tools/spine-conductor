@@ -289,7 +289,7 @@ def mkvenv(
     if metadata:
         (Path(venvpath) / "metadata.txt").write_text(metadata)
 
-    subprocess.run(f"{python} -m pip install -U pip".split())
+    subprocess.run(f"{python} -m pip install -U pip".split(), capture_output=True)
     if requires:
         pip_install(python=python, requires=requires, **pip_opts)
     return name
