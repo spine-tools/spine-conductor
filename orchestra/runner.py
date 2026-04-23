@@ -332,7 +332,27 @@ def run_in_venv(
     return subprocess.run(pycmd, capture_output=True)
 
 
-def run_tests(directory: str, venv_name: str = "", in_process: bool = False):
+def run_tests_in_proc(directory: str, venv_name: str = "", **opts):
+    """Runs the unittests in a directory
+
+    Parameters
+    ----------
+    directory: str
+        The directory containing the tests
+
+    Returns
+    -------
+    results:
+        - TestResult: The results of the unittest tests
+
+    """
+    # TODO: support pytest
+    test_suite = defaultTestLoader.discover(directory)
+    results = test_suite.run(TestResult())
+    return results
+
+
+def run_tests(directory: str, venv_name: str, **opts):
     """Runs the unittests in a directory
 
     Parameters
@@ -341,35 +361,20 @@ def run_tests(directory: str, venv_name: str = "", in_process: bool = False):
         The directory containing the tests
     venv_name: str
         The name of the virtual environment
-    in_process: bool
-        Whether to run the tests in process or in a virtual environment
+    **opts:
+        Additional arguments to test command
 
     Returns
     -------
     results:
-        - CompletedProcess (default): result object from `subprocess.run(..)`
-        - TestResult (when in_process=True): The results of the tests
-
-    Raises
-    ------
-    ValueError
-        If `in_process` is False and `venv_name` is not specified
+        - CompletedProcess: result object from `subprocess.run(..)`
 
     """
-    if in_process:
-        # TODO: support pytest
-        test_suite = defaultTestLoader.discover(directory)
-        results = test_suite.run(TestResult())
-        return results
-    else:
-        if not venv_name:
-            raise ValueError("venv must be specified if not running in process")
-
     if has_pytest(venv_name):
-        return run_in_venv(venv_name, "pytest", directory)
+        return run_in_venv(venv_name, "pytest", directory, **opts)
     else:
         return run_in_venv(
-            venv_name, "unittest", "discover", preface_opt=False, s=directory
+            venv_name, "unittest", "discover", preface_opt=False, s=directory, **opts
         )
 
 
