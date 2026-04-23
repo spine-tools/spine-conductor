@@ -384,43 +384,48 @@ def spec(req: Requirement) -> tuple[str, str, str]:
     return req.name, spec.operator, spec.version
 
 
-def resolve_versions(specs: Iterable[Requirement]) -> dict[str, str]:
+def resolve_versions(
+    specs: Iterable[Requirement], targets: Sequence[str] | Sequence[Requirement]
+) -> list[Requirement]:
     """Resolves a list of requirements to a list of unique versions by package
 
     Parameters
     ----------
     specs: Iterable[Requirement]
         The requirements to resolve
+    targets: Sequence[str] | Sequence[Requirement]
+        Target package versions, e.g. 'pkga==0.10.2'
 
     Returns
     -------
-    versions: dict[str, str]
-        The resolved versions; the keys are the package names and the values
-        are the versions
+    versions: list[Requirement]
+        The resolved package versions
 
     Raises
     ------
     ValueError
-        If the requirements resolve to multiple versions
+        If the requirements resolve to incompatible versions
 
     """
-    _res: defaultdict[str, list[str]] = defaultdict(list)
-    _specs: defaultdict[str, list[str]] = defaultdict(list)
-    for req in specs:
-        name, _, ver = spec(req)
-        _res[name].append(ver)
-        _specs[name].append(f"{req.specifier}")
+    _specs = {
+        pkg: reduce(lambda i, j: i & j, [r.specifier for r in grouper])
+        for pkg, grouper in groupby(specs, lambda r: r.name)
+    }
+    _targets = {
+        req.name: req.specifier
+        for req in map(
+            lambda s: s if isinstance(s, Requirement) else Requirement(s), targets
+        )
+    }
 
-    res: dict[str, str] = {}
-    for name, versions in _res.items():
-        _versions = list(set(versions))
-        if len(_versions) > 1:
-            latest = sorted(map(Version, _versions))[-1]
-            res[name] = f"{latest}"
-        else:
-            res[name] = _versions[0]
+    for pkg, spec in _targets.items():
+        if pkg not in _specs:
+            continue
+        _spec = next(iter(spec))
+        if _spec.version not in _specs[pkg]:
+            raise ValueError(f"{pkg}: {_spec.version} ∉ {_specs[pkg]}")
 
-    return res
+    return [Requirement(f"{pkg}{spec}") for pkg, spec in _targets.items()]
 
 
 def clone_from(src_path: str, dst_path: str, branch: str) -> Repo:
