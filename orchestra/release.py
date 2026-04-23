@@ -295,7 +295,7 @@ def create_tags(
 
         update_pkg_deps(CONF, repo, next_versions)
         prompt_add(repo)
-        modified = [i.a_path for i in repo.index.diff(None)]
+        modified = [i.a_path for i in repo.index.diff(None) if i.a_path]
         if "pyproject.toml" in modified:  # must add pyproject.toml
             repo.git.add("pyproject.toml")
         added = len([i for i in repo.index.diff("HEAD")])
