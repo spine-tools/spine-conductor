@@ -1,18 +1,29 @@
 from email.parser import Parser as MetadataParser
 from enum import Enum
+from functools import lru_cache
 from pathlib import Path
 import re
 from typing import Literal
 
+from git import Repo
 from packaging.requirements import Requirement
 from packaging.version import Version
-from pypi_simple import PyPISimple, ACCEPT_JSON_ONLY, DistributionPackage
+from pypi_simple import ACCEPT_JSON_ONLY
+from pypi_simple import DistributionPackage
+from pypi_simple import PyPISimple
+import tomlkit
 from wheel.wheelfile import WheelFile
 
 from .config import read_toml
 from .release import version_parse_no_except
 
 version_specifier = re.compile("[<>]=?|==|~=")
+version_number = re.compile("[0-9]+\\.[0-9]+\\.[0-9]+")
+
+
+def is_version(req: str) -> bool:
+    _, ver = req.split("==", maxsplit=1)
+    return version_number.match(ver) is not None
 
 
 def is_requirement_in(req: Requirement | str, req_super: Requirement):
@@ -231,5 +242,47 @@ def requirements_from_pyproject(
 
     if include_dev and (dev_req := proj_path / "dev-requirements.txt").exists():
         deps += list(filter(None, dev_req.read_text().split("\n")))
+
+    return list(map(Requirement, deps))
+
+
+def read_git_blob(repo_path: str, tag_name: str, path: str) -> str:
+    git_blob = Repo(repo_path).tags[tag_name].commit.tree / path
+    blob = git_blob.data_stream.read().decode("utf8")
+    return blob
+
+
+@lru_cache(maxsize=8)
+def requirements_from_tag(
+    repo_path: str,
+    tag_name: str,
+    toml_path: str = "pyproject.toml",
+    req_path: str = "",
+) -> list[Requirement]:
+    """
+    Read package requirements from a specific git tag without checking out.
+
+    Parameters
+    ----------
+    repo_path: str
+        to the git repository
+    tag_name: str
+        Name of the tag (e.g., 'v1.0.0')
+    file_path: str
+        Name of the file path to retrieve
+
+    Returns
+    -------
+    list[Requirement]
+        List of package requirement specifiers.
+
+    """
+    document = read_git_blob(repo_path, tag_name, toml_path)
+    proj = tomlkit.loads(document)
+    deps: list[str] = proj["project"]["dependencies"]  # type: ignore
+
+    if req_path:
+        reqs = read_git_blob(repo_path, tag_name, req_path).strip().split("\n")
+        deps += list(filter(None, reqs))
 
     return list(map(Requirement, deps))
