@@ -1,25 +1,32 @@
-from collections import defaultdict
 import hashlib
-from itertools import chain, filterfalse, tee
+from functools import reduce
+from itertools import chain
+from itertools import filterfalse
+from itertools import groupby
+from itertools import starmap
+from itertools import tee
 from packaging.requirements import Requirement
 from pathlib import Path
 import subprocess
 import sys
-from typing import Any, Iterable, TypeVar
+from typing import Any
+from typing import Iterable
+from typing import Sequence
+from typing import TypeVar
 from unittest import defaultTestLoader
 from unittest import TestResult
 import venv
 
 from git import Repo
 from packaging.specifiers import Specifier
-from packaging.version import Version
 from rich.console import Console
 from rich.table import Table
 
+from .pkgindex import is_version
 from .pkgindex import pkg_find
 from .pkgindex import pkg_download
 from .pkgindex import requirements_from_whl
-from .pkgindex import requirements_from_pyproject
+from .pkgindex import requirements_from_tag
 from .release import remote_name
 
 venv_dir = ".venvs"
@@ -458,7 +465,7 @@ def clone_from(src_path: str, dst_path: str, branch: str) -> Repo:
 
 
 def mkvenv_xtest(
-    config: dict, ref: list[str], dev: list[str]
+    config: dict, ref: Sequence[str], dev: Sequence[str]
 ) -> tuple[str, list[Repo]]:
     """Create a virtual environment for cross testing.
 
@@ -478,6 +485,10 @@ def mkvenv_xtest(
     srcs: list[Repo]
         List of (dev) repositories to test
 
+    Raises
+    ------
+    ValueError
+
     """
     ref_pkgs = {Requirement(dep).name: pkg_find(dep) for dep in ref}
     whls = {name: pkg_download(pkg, wheel_dir) for name, pkg in ref_pkgs.items()}
@@ -489,14 +500,15 @@ def mkvenv_xtest(
     if unk:
         raise ValueError(f"unknown dev packages: {str(unk).strip('[]')}")
 
-    projpaths = [config["repos"][pkg] for pkg in dev_pkgs]
+    projpaths_n_tags = ((config["repos"][pkg], tag) for pkg, tag in dev_pkgs.items())
 
     # NOTE: contains duplicates for our projects
-    requirements = set(
+    requirements = sorted(
         chain(
             *map(requirements_from_whl, whls.values()),
-            *map(requirements_from_pyproject, projpaths),
-        )
+            *starmap(requirements_from_tag, projpaths_n_tags),
+        ),
+        key=lambda r: r.name,
     )
 
     def is_ours(req):
@@ -504,12 +516,11 @@ def mkvenv_xtest(
 
     t1, t2 = tee(requirements)
     rest = list(filterfalse(is_ours, t1))
-    ours = {
-        name: ver
-        for name, ver in resolve_versions(filter(is_ours, t2)).items()
-        if name not in dev_pkgs
-    }
-    venv_vers = sorted(f"{pkg}=={ver}" for pkg, ver in ours.items()) + dev
+    _vers = [i for i in chain(ref, dev) if is_version(i)]
+    _dep_vers = list(filter(is_ours, t2))
+    ours = resolve_versions(_dep_vers, _vers)
+    _unvers = [i for i in dev if not is_version(i)]
+    venv_vers = sorted(f"{req}" for req in ours) + _unvers
     console.print(f"all versions: {','.join(venv_vers)}")
 
     repos: dict[str, Repo] = {
@@ -523,19 +534,22 @@ def mkvenv_xtest(
     venv_name = mkvenv(metadata="\n".join(venv_vers), requires=list(map(str, rest)))
     console.print(f"venv: {venv_dir}/{venv_name}")
 
-    # install dev
+    # install dev; NOTE: git.Repo.working_dir isn't typed
     our_deps = chain(
         [repos[name].working_dir for name in dev_pkgs],
         [f"{whl}" for name, whl in whls.items() if name not in dev_pkgs],
     )
-    # NOTE: git.Repo.working_dir isn't typed
+
+    # FIXME: find a better way to include additional deps;
+    # pytest-reportlog is needed for parsing pytest output
+    pip_install(venv_name, requires=["pytest", "pytest-reportlog"])
     pip_install(venv_name, requires=our_deps, no_deps=True)  # type: ignore
     return venv_name, [repos[name] for name in dev_pkgs]
 
 
 def run_xtest(
-    config: dict, ref: list[str], dev: list[str]
-) -> dict[tuple[str, ...], TestResult | subprocess.CompletedProcess]:
+    config: dict, ref: Sequence[str], dev: Sequence[str], **opts
+) -> dict[tuple[str, ...], subprocess.CompletedProcess]:
     """Runs the tests for a package
 
     Parameters
@@ -549,11 +563,10 @@ def run_xtest(
 
     Returns
     -------
-    dict[tuple[str, ...], TestResult | subprocess.CompletedProcess]
+    dict[tuple[str, ...], subprocess.CompletedProcess]
         - key: Tuple of package requirement specs
-        - value: TestResult when run in_process,
-          subprocess.CompletedProcess from running the tests as a
-          subprocess.
+        - value: subprocess.CompletedProcess from running the tests as
+          a subprocess.
 
     Raises
     ------
@@ -564,7 +577,7 @@ def run_xtest(
     venv_name, srcs = mkvenv_xtest(config, ref, dev)
     results = {
         tuple(f"{s}" for s in chain(dev, ref)): run_tests(
-            f"{repo.working_dir}/tests", venv_name=venv_name
+            f"{repo.working_dir}/tests", venv_name=venv_name, **opts
         )
         for repo in srcs
     }
@@ -594,7 +607,11 @@ if __name__ == "__main__":
         ] = Path("pyproject.toml"),
     ):
         conf = read_conf(f"{config}")
-        run_xtest(conf, ref, dev)
+        try:
+            run_xtest(conf, ref, dev)
+        except ValueError as err:
+            console.print_exception()
+            sys.exit(1)
 
     typer.run(main)
 
