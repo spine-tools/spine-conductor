@@ -30,9 +30,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout spine-conductor (for actions)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
     - name: Install dependencies
@@ -52,7 +52,7 @@ jobs:
         pkg: ${{ matrix.pkg }}
         python: ${{ matrix.python }}
     - name: Save ${{ matrix.pkg }} wheel
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.pkg }}
         path: ${{ matrix.pkg }}/dist/*
@@ -64,7 +64,7 @@ jobs:
       matrix:
         pkg: ['Spine-Database-API', 'spine-engine', 'spine-items', 'Spine-Toolbox']
         os: [ubuntu-latest, windows-latest]
-        python: ["3.10", "3.11", "3.12", "3.13",]
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
       fail-fast: false
 
     uses: ./.github/workflows/test-wheel.yml

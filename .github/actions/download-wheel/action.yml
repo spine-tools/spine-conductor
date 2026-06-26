@@ -15,7 +15,7 @@ runs:
   using: composite
   steps:
   - name: Checkout ${{ inputs.pkg }}
-    uses: actions/checkout@v4
+    uses: actions/checkout@v6
     with:
       repository: 'spine-tools/${{ inputs.pkg }}'
       path: ${{ inputs.pkg }}
