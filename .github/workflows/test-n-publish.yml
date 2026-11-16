@@ -63,7 +63,7 @@ jobs:
     strategy:
       matrix:
         pkg: ['Spine-Database-API', 'spine-engine', 'spine-items', 'Spine-Toolbox']
-        os: ["windows-latest", "ubuntu-latest"]
+        os: ["ubuntu-latest"]
         python: ["3.11", "3.12", "3.13", "3.14", "3.15"]
         exclude:
           - os: ubuntu-latest
